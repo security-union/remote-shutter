@@ -6,7 +6,8 @@
 //  same `RulerPill` zoom uses, a readout strip with the light meter and the
 //  AUTO / MANUAL chip, and the value → `SetExposure` mapping. Ranges come
 //  from the focused camera's `ExposureState`, never from constants.
-//  See Docs/pro-controls.md.
+//  Portrait's aperture ruler is the same column pill, ranged by the rig's
+//  `PortraitState` reports. See Docs/pro-controls.md.
 //
 
 import SwiftUI
@@ -190,10 +191,44 @@ struct ExposureRulerPill: View {
     let onChange: (Double) -> Void
 
     var body: some View {
-        RulerPill(track: kind.track(exposure),
-                  currentValue: kind.value(exposure),
-                  readout: { kind.label($0) },
-                  accessibilityLabel: kind.accessibilityLabel,
+        ColumnRulerPill(track: kind.track(exposure),
+                        currentValue: kind.value(exposure),
+                        readout: { kind.label($0) },
+                        accessibilityLabel: kind.accessibilityLabel,
+                        axis: axis,
+                        reset: kind.hasReset
+                            ? ColumnRulerPill.Reset(value: 0,
+                                                    accessibilityLabel: NSLocalizedString(
+                                                        "Reset exposure compensation", comment: "a11y"))
+                            : nil,
+                        onChange: onChange)
+    }
+}
+
+/// A `RulerPill` in the director's ruler column: always up, on the column's
+/// shared track length, with the reserved end slot holding an optional reset.
+/// The exposure rulers and Portrait's aperture ruler are all this pill,
+/// configured.
+struct ColumnRulerPill: View {
+    /// A button in the end slot that jumps back to a neutral value.
+    struct Reset {
+        let value: Double
+        let accessibilityLabel: String
+    }
+
+    let track: RulerTrack
+    let currentValue: Double
+    let readout: (Double) -> String
+    let accessibilityLabel: String
+    let axis: Axis
+    var reset: Reset?
+    let onChange: (Double) -> Void
+
+    var body: some View {
+        RulerPill(track: track,
+                  currentValue: currentValue,
+                  readout: readout,
+                  accessibilityLabel: accessibilityLabel,
                   trackLength: ExposureRulerMetrics.track(axis: axis),
                   axis: axis,
                   onChange: onChange,
@@ -203,18 +238,89 @@ struct ExposureRulerPill: View {
                           // Back to neutral. It commits through the pill, so
                           // the thumb returns on the tap rather than waiting
                           // for the camera to answer.
-                          if kind.hasReset {
+                          if let reset {
                               PillCircleButton(
-                                  action: { proxy.commit(0) },
+                                  action: { proxy.commit(reset.value) },
                                   label: {
                                       Image(systemName: "arrow.uturn.backward")
                                           .font(.system(size: 16, weight: .semibold))
                                   })
-                                  .accessibilityLabel(NSLocalizedString("Reset exposure compensation",
-                                                                        comment: "a11y"))
+                                  .accessibilityLabel(reset.accessibilityLabel)
                           }
                       }
                   })
+    }
+}
+
+// MARK: - Portrait aperture
+
+/// Portrait's f-stop ruler: the simulated aperture of the blur, a rig
+/// setting. Log2 like the other rulers, so one stop is one distance; the
+/// lower f-number (more blur) sits at the left, or at the bottom when the
+/// ruler stands. It clicks in ⅓ stops with the full stops drawn tall
+/// (f/1.4, 2, 2.8, 4, 5.6, 8, 11, 16). The range is the rig's: what every
+/// camera reports it accepts.
+enum ApertureStops {
+    /// One stop of aperture is a factor of √2 in the f-number, half a step
+    /// of log2; a ⅓-stop click is a sixth.
+    static let clicksPerLog2 = 6
+    static let clicksPerStop = 3
+
+    /// The f-numbers photography prints for the ⅓-stop series. A click sits
+    /// a little off its name (f/5.6 is 2^2.5 = 5.66), so these name the
+    /// clicks and are what the director sends.
+    static let names: [Double] = [
+        1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.5, 2.8, 3.2, 3.5, 4, 4.5, 5, 5.6,
+        6.3, 7.1, 8, 9, 10, 11, 13, 14, 16, 18, 20, 22, 25, 29, 32
+    ]
+
+    static func track(min: Float, max: Float) -> RulerTrack {
+        let clicks = RulerTrack.dial(min: Double(min), max: Double(max), anchor: 1,
+                                     stepsPerStop: clicksPerLog2)
+        let fullStops = clicks.stops.filter { value in
+            let halfStops = Foundation.log2(value) * 2
+            return abs(halfStops - halfStops.rounded()) < 0.01
+        }
+        return RulerTrack(mapping: .log2, detents: .stepped, min: Double(min), max: Double(max),
+                          stops: clicks.stops, majorStops: fullStops)
+    }
+
+    /// The printed f-number for a click ("5.6" for 5.66); anything off the
+    /// ⅓-stop grid (a camera's own end, f/1.7) is itself.
+    static func nominal(_ value: Double) -> Double {
+        guard value > 0 else { return value }
+        let onGrid = Foundation.log2(value) * Double(clicksPerLog2)
+        guard abs(onGrid - onGrid.rounded()) < 0.03,
+              let name = names.min(by: { abs(Foundation.log2($0 / value)) < abs(Foundation.log2($1 / value)) }),
+              abs(Foundation.log2(name / value)) < 1.0 / 12 else { return value }
+        return name
+    }
+
+    /// "f/2.8", "f/2", "f/16".
+    static func label(_ value: Double) -> String {
+        guard value > 0 else { return "f/—" }
+        let named = nominal(value)
+        let tenths = (named * 10).rounded() / 10
+        let number = tenths >= 10 || tenths == tenths.rounded()
+            ? String(Int(tenths.rounded())) : String(format: "%.1f", tenths)
+        return "f/\(number)"
+    }
+}
+
+/// The aperture ruler on the director, in the exposure rulers' column.
+struct ApertureRulerPill: View {
+    let portrait: RigPortraitReport
+    let axis: Axis
+    /// The f-number to send, already its printed name (f/2.8, not 2.83).
+    let onChange: (Float) -> Void
+
+    var body: some View {
+        ColumnRulerPill(track: ApertureStops.track(min: portrait.minAperture, max: portrait.maxAperture),
+                        currentValue: Double(portrait.aperture),
+                        readout: ApertureStops.label,
+                        accessibilityLabel: NSLocalizedString("Portrait blur aperture", comment: "a11y"),
+                        axis: axis,
+                        onChange: { onChange(Float(ApertureStops.nominal($0))) })
     }
 }
 

@@ -589,11 +589,20 @@ final class CaptureIntegrationTests: XCTestCase {
         XCTAssertFalse(data.isEmpty, "a still must capture after round-tripping the modes")
     }
 
-    /// Portrait on real hardware: a camera that advertises it turns depth
-    /// on, the still comes back with the blur baked in (re-encoded, no depth
-    /// kept) at 12MP or less, and frames keep flowing both ways. Both stills
-    /// are attached to the result so the blur can be eyeballed.
-    func testPortraitStillIsBlurredWithin12MPAndFramesKeepFlowing() async throws {
+    /// Whether a still's file carries an HDR gain map (Apple's or ISO's).
+    private static func hasGainMap(_ source: CGImageSource) -> Bool {
+        var types = [kCGImageAuxiliaryDataTypeHDRGainMap]
+        if #available(iOS 18.0, macCatalyst 18.0, *) { types.append(kCGImageAuxiliaryDataTypeISOGainMap) }
+        return types.contains { CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, $0) != nil }
+    }
+
+    /// Portrait on real hardware. A camera that advertises it turns depth and
+    /// the mattes on, and the still is the capture file itself: depth and the
+    /// person matte embedded, within the 24MP ceiling, the native ratio even
+    /// with 16:9 selected (a crop would re-encode and drop the depth), and
+    /// whatever gain map the camera wrote. Frames keep flowing both ways. The
+    /// still is attached so Photos' Depth Control can be checked by hand.
+    func testPortraitStillIsTheCaptureFileWithDepthWithin24MPAndFramesKeepFlowing() async throws {
         try await startRealRig()
         guard await waitForFrames(since: 0) != nil else {
             throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
@@ -605,6 +614,8 @@ final class CaptureIntegrationTests: XCTestCase {
         _ = await rig.engine.setAspectRatio(.fourThree)
         let photo = try await captureStill()
         attach(photo, named: "photo-mode")
+        let photoHasGainMap = Self.hasGainMap(
+            try XCTUnwrap(CGImageSourceCreateWithData(photo as CFData, nil)))
         let zoomBefore = (device.minAvailableVideoZoomFactor, device.maxAvailableVideoZoomFactor)
 
         var mark = Date().timeIntervalSinceReferenceDate
@@ -616,22 +627,47 @@ final class CaptureIntegrationTests: XCTestCase {
             return XCTFail("no frames after →portrait — \(await diagnostics())")
         }
         print("📸 portrait: \(device.localizedName) matte=\(output.isPortraitEffectsMatteDeliveryEnabled) "
+              + "semantic=\(output.enabledSemanticSegmentationMatteTypes.map(\.rawValue)) "
+              + "of \(output.availableSemanticSegmentationMatteTypes.map(\.rawValue)) "
               + "zoom \(zoomBefore) → (\(device.minAvailableVideoZoomFactor), \(device.maxAvailableVideoZoomFactor))")
+        XCTAssertEqual(Set(output.enabledSemanticSegmentationMatteTypes),
+                       Set(CaptureEngine.portraitMatteTypes(available: output.availableSemanticSegmentationMatteTypes)),
+                       "Portrait asks for every offered hair/skin/teeth/glasses matte")
+        if #available(iOS 16.0, macCatalyst 16.0, *) {
+            let dims = output.maxPhotoDimensions
+            print("📸 portrait: photo ceiling \(dims.width)x\(dims.height) of "
+                  + "\(device.activeFormat.supportedMaxPhotoDimensions.map { "\($0.width)x\($0.height)" })")
+            XCTAssertLessThanOrEqual(Int64(dims.width) * Int64(dims.height), CaptureEngine.portraitMaxPhotoPixels)
+        }
 
-        let portrait = try await captureStill()
-        attach(portrait, named: "portrait-mode")
-        let dims = try stillDimensions(portrait)
-        print("📸 portrait: still \(dims.width)x\(dims.height), \(portrait.count) bytes")
-        XCTAssertLessThanOrEqual(Int64(dims.width) * Int64(dims.height), CaptureEngine.portraitMaxPhotoPixels)
-        let source = try XCTUnwrap(CGImageSourceCreateWithData(portrait as CFData, nil))
-        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDisparity),
-                     "the native-ratio still was re-rendered by the blur, not passed through")
-        XCTAssertNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(source, 0, kCGImageAuxiliaryDataTypeDepth))
+        // The still: the capture file, untouched.
+        _ = await rig.engine.setAspectRatio(.sixteenNine)
+        let still = try await captureStill()
+        attach(still, named: "portrait")
+        let stillSource = try XCTUnwrap(CGImageSourceCreateWithData(still as CFData, nil))
+        XCTAssertNotNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(stillSource, 0, kCGImageAuxiliaryDataTypeDisparity)
+                        ?? CGImageSourceCopyAuxiliaryDataInfoAtIndex(stillSource, 0, kCGImageAuxiliaryDataTypeDepth),
+                        "the still carries its depth for Photos' Depth Control")
+        if output.isPortraitEffectsMatteDeliveryEnabled {
+            XCTAssertNotNil(CGImageSourceCopyAuxiliaryDataInfoAtIndex(
+                stillSource, 0, kCGImageAuxiliaryDataTypePortraitEffectsMatte))
+        }
+        let stillDims = try stillDimensions(still)
+        XCTAssertNil(CaptureEngine.cropRect(sourceWidth: CGFloat(stillDims.width),
+                                            sourceHeight: CGFloat(stillDims.height),
+                                            aspectRatio: .fourThree),
+                     "the still is the native 4:3 capture, not a 16:9 re-encode")
+        XCTAssertLessThanOrEqual(Int64(stillDims.width) * Int64(stillDims.height), CaptureEngine.portraitMaxPhotoPixels)
+        XCTAssertEqual(Self.hasGainMap(stillSource), photoHasGainMap,
+                       "the capture file keeps whatever gain map the camera wrote")
+        print("📸 portrait: \(stillDims.width)x\(stillDims.height), \(still.count) bytes")
+        _ = await rig.engine.setAspectRatio(.fourThree)
 
         mark = Date().timeIntervalSinceReferenceDate
         rig.currentCameraMode = .Photo
         await eventually { !output.isDepthDataDeliveryEnabled }
         XCTAssertFalse(output.isDepthDataDeliveryEnabled, "Photo turns depth off")
+        XCTAssertTrue(output.enabledSemanticSegmentationMatteTypes.isEmpty, "Photo turns the mattes off")
         guard await waitForFrames(since: mark) != nil else {
             return XCTFail("no frames after →photo — \(await diagnostics())")
         }
@@ -1006,5 +1042,63 @@ final class CaptureIntegrationTests: XCTestCase {
         var frames = 0
         while output.copyNextSampleBuffer() != nil { frames += 1 }
         return (frames, seconds)
+    }
+}
+
+extension CaptureIntegrationTests {
+
+    /// Portrait's live preview blur on real hardware: entering Portrait
+    /// attaches the depth output and maps arrive, preview frames keep flowing
+    /// through the blur (fps and per-frame blur cost logged), and leaving
+    /// Portrait detaches the output and drops the map.
+    func testPortraitPreviewIsBlurredFromLiveDepth() async throws {
+        try await startRealRig()
+        guard await waitForFrames(since: 0) != nil else {
+            throw XCTSkip("camera delivers no frames here — \(await diagnostics())")
+        }
+        let device = try XCTUnwrap(rig.engine.currentDevice())
+        guard CaptureEngine.supportsPortrait(device) else {
+            throw XCTSkip("\(device.localizedName) delivers no depth")
+        }
+        let engine = rig.engine, coordinator = rig.streamingCoordinator
+        let session = engine.captureSession, depthOutput = engine.depthPreviewOutput
+        XCTAssertFalse(session.outputs.contains(depthOutput), "no depth output outside Portrait")
+
+        rig.currentCameraMode = .Portrait
+        await eventually { engine.liveDepth.isStreaming }
+        XCTAssertTrue(session.outputs.contains(depthOutput), "Portrait attaches the depth output")
+        await eventually { engine.liveDepth.latest != nil }
+        let map = try XCTUnwrap(engine.liveDepth.latest, "a depth map arrives in Portrait").depthDataMap
+        let mapWidth = CVPixelBufferGetWidth(map), mapHeight = CVPixelBufferGetHeight(map)
+
+        let seconds = ProcessInfo.processInfo.environment["PROBE_SECONDS"].flatMap(Double.init) ?? 10
+        let lane = coordinator.previewLane, encoded0 = lane.encoded, skipped0 = lane.skipped
+        let blur0 = coordinator.portraitBlurStats, depth0 = engine.liveDepth.delivered
+        let started = Date()
+        while Date().timeIntervalSince(started) < seconds { try? await Task.sleep(nanoseconds: 250_000_000) }
+        let wall = Date().timeIntervalSince(started)
+        let blur = coordinator.portraitBlurStats
+        let previewFPS = Double(lane.encoded - encoded0) / wall
+        let depthFPS = Double(engine.liveDepth.delivered - depth0) / wall
+        let blurredFPS = Double(blur.frames - blur0.frames) / wall
+        print("📸 portrait preview: \(device.localizedName) depth \(mapWidth)x\(mapHeight) "
+              + String(format: "%.1f fps; preview %.1f fps, lane busy %d; blurred %.1f fps at %.2f ms/frame (f/%.1f); ",
+                       depthFPS, previewFPS, lane.skipped - skipped0, blurredFPS, blur.averageMillis,
+                       engine.portraitAperture)
+              + "dedicated preview \(engine.isPreviewOutputAttached), hardware cost \(engine.hardwareCostSnapshot()), "
+              + "frames \(coordinator.lastPreviewPixelFormat) \(coordinator.lastPreviewFrameSize)")
+        XCTAssertGreaterThan(depthFPS, 0, "depth keeps arriving in Portrait")
+        XCTAssertGreaterThan(previewFPS, 20, "the preview keeps flowing in Portrait")
+        XCTAssertGreaterThan(blur.frames, blur0.frames, "Portrait frames go through the blur")
+
+        let mark = Date().timeIntervalSinceReferenceDate
+        rig.currentCameraMode = .Photo
+        await eventually { !session.outputs.contains(depthOutput) }
+        XCTAssertFalse(session.outputs.contains(depthOutput), "leaving Portrait detaches the depth output")
+        XCTAssertFalse(engine.liveDepth.isStreaming)
+        XCTAssertNil(engine.liveDepth.latest, "no stale map after Portrait")
+        guard await waitForFrames(since: mark) != nil else {
+            return XCTFail("no frames after →photo — \(await diagnostics())")
+        }
     }
 }

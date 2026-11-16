@@ -40,6 +40,11 @@ struct FeatureFlags {
     static let ENABLE_LOCAL_CAMERA_PICKER = false
     #endif
 
+    /// Portrait mode: stills that keep their depth so Photos draws the blur.
+    /// Off: no camera reports Portrait, so no remote offers the mode and
+    /// depth capture never turns on (`CaptureEngine.offersPortrait`).
+    static let ENABLE_PORTRAIT_MODE = false
+
     // MARK: - Future Feature Flags
     // Add new feature flags here as needed
     // Example:

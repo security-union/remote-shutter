@@ -30,6 +30,11 @@ public final class MulticamViewController: UIViewController {
     /// camera is whichever lane the drag was on.
     private var exposureSenders: [ExposureRulerKind: ThrottledValueSender] = [:]
     private var exposureTarget: MCPeerID?
+    /// Portrait's aperture ruler, throttled the same way. A rig setting, so
+    /// it has no target camera: the controller fans it out.
+    private lazy var apertureSender = ThrottledValueSender { [weak self] aperture in
+        self?.controller.setPortrait(aperture: Float(aperture))
+    }
     private var trailingZoomTimer: Timer?
 
     /// `controller` must already be `install`-ed with its transport + peers by
@@ -97,6 +102,7 @@ public final class MulticamViewController: UIViewController {
                 let intent: ExposureIntent = mode == .manual ? .manual(durationSeconds: 0, iso: 0) : .auto(bias: 0)
                 self?.controller.setExposure(intent, on: lane.peerID)
             },
+            onApertureChange: { [weak self] aperture in self?.apertureSender.submit(Double(aperture)) },
             onOpenSettings: { [weak self] in
                 logInfo("director: settings opened")
                 self?.showPaywall()

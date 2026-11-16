@@ -72,6 +72,14 @@ final class FrameStreamingCoordinator: NSObject {
     /// Test support: the preview HEVC encoder's counters, read on its own lane.
     var previewEncoderStats: HEVCFrameEncoder.Stats? { previewQueue.sync { frameStreamer.videoEncoderStats } }
     #endif
+    /// Portrait's live blur, built on the first Portrait frame. Preview-queue confined.
+    private lazy var portraitBlur = PortraitPreviewBlur()
+    #if DEBUG
+    /// Test support: frames the Portrait blur rendered and their mean cost.
+    var portraitBlurStats: (frames: Int, averageMillis: Double) {
+        previewQueue.sync { (portraitBlur.framesBlurred, portraitBlur.averageMillis) }
+    }
+    #endif
     /// Feeds encoded monitor frames to the FrameSender actor.
     private let frameSink: FrameStreamer.Send
     /// Reads the VC's orientation. Called on the preview queue.
@@ -303,10 +311,25 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
         }
 
         guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return }
-        frameStreamer.handle(pixelBuffer: pixelBuffer,
-                             position: engine.currentPositionShared.load(ordering: .relaxed),
-                             orientation: orientationProvider(),
+        let orientation = orientationProvider()
+        let position = engine.currentPositionShared.load(ordering: .relaxed)
+        frameStreamer.handle(pixelBuffer: portraitFrame(pixelBuffer, orientation: orientation, position: position),
+                             position: position,
+                             orientation: orientation,
                              fps: fpsSetting.load(ordering: .relaxed))
+    }
+
+    /// Preview-lane only. In Portrait with a live depth map, the frame blurred
+    /// at the rig's aperture; otherwise the capture buffer itself, after one
+    /// atomic load.
+    private func portraitFrame(_ pixelBuffer: CVPixelBuffer,
+                               orientation: @autoclosure () -> UIInterfaceOrientation,
+                               position: @autoclosure () -> AVCaptureDevice.Position) -> CVPixelBuffer {
+        guard engine.liveDepth.isStreaming, let depth = engine.liveDepth.latest else { return pixelBuffer }
+        return portraitBlur.blurred(
+            pixelBuffer, disparity: depth, aperture: engine.portraitAperture,
+            orientation: PortraitPreviewBlur.depthOrientation(for: OrientationUtils.transform(o: orientation()),
+                                                              position: position()))
     }
 
     /// Builds a compact frame of the current capture for the Apple Watch live
@@ -316,7 +339,9 @@ extension FrameStreamingCoordinator: AVCaptureVideoDataOutputSampleBufferDelegat
     /// to the right decoder. The sample buffer is already oriented by
     /// `videoConnection.videoOrientation`, so it renders upright.
     private func watchPreviewFrame(from sampleBuffer: CMSampleBuffer) -> EncodedFrame? {
-        guard let pixelBuffer = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+        guard let captured = CMSampleBufferGetImageBuffer(sampleBuffer) else { return nil }
+        let pixelBuffer = portraitFrame(captured, orientation: orientationProvider(),
+                                        position: engine.currentPositionShared.load(ordering: .relaxed))
         let frame = encodeWithFallback(&watchFrameEncoders, pixelBuffer: pixelBuffer)
         if let frame, frame.codec != lastAnnouncedWatchCodec {
             lastAnnouncedWatchCodec = frame.codec

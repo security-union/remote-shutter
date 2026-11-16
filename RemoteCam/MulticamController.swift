@@ -243,6 +243,10 @@ public actor MulticamController {
     /// pre-warm (the sensor reconfigure is paid at the toggle, not at the
     /// shutter). A setting, not an event: reconciled on join like aspect.
     private var rigCameraMode: RecordingMode = .Photo
+    /// Portrait's aperture: a rig setting, one value for every camera, like
+    /// the aspect. It opens at what the first Portrait camera reports (the
+    /// camera owns the default), then follows the operator.
+    private var rigPortrait = RigPortraitIntent()
     /// The rig-wide camera-preview mode: standby blanks each camera's own
     /// on-screen preview (the director is the viewfinder; capture and the
     /// streamed frames are unaffected). Sent only to cameras that advertised
@@ -551,6 +555,10 @@ public actor MulticamController {
         case let a as MCSetAspectRatio:
             logInfo("director: aspect \(a.ratio.displayName) → all")
             handleSetAspectRatio(a.ratio)
+        case let p as MCSetPortrait:
+            // A drag, not a press — firehose level, like zoom.
+            logDebug("director: portrait f/\(p.aperture) → all")
+            handleSetPortrait(aperture: p.aperture)
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
@@ -683,6 +691,19 @@ public actor MulticamController {
             // capability, and only a differing camera is commanded.
             if let reported = caps.cameraMode, reported != rigCameraMode {
                 sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: rigCameraMode), to: peer)
+            }
+            // Portrait's aperture, on the same gate. A camera with
+            // a SetPortrait still in flight is left alone until it answers:
+            // mid-drag replies trail the ruler, and the last one settles it.
+            // A camera with a narrower range narrows the rig, and every
+            // camera follows.
+            if let reported = caps.portrait {
+                rigPortrait.adopt(reported)
+                let narrowed = rigPortrait.fit(into: rigPortraitReport())
+                for other in narrowed ? order : [peer]
+                where links[other]?.pending[.setportrait, default: 0] == 0 {
+                    sendPortraitCorrection(to: other)
+                }
             }
 
         case let ack as RemoteCmd.ScheduledCaptureAck:
@@ -1324,6 +1345,28 @@ public actor MulticamController {
         }
     }
 
+    /// Portrait's rig setting: the aperture of the blur. Fanned out to every
+    /// camera that reports a Portrait block and differs; never sent to one
+    /// without the block.
+    public nonisolated func setPortrait(aperture: Float) {
+        tell(MCSetPortrait(aperture: aperture))
+    }
+
+    private func handleSetPortrait(aperture: Float) {
+        rigPortrait.aperture = aperture
+        _ = rigPortrait.fit(into: rigPortraitReport())
+        for peer in order { sendPortraitCorrection(to: peer) }
+    }
+
+    /// Bring one camera's Portrait aperture in line with the rig, from what
+    /// it last reported. Silent when it already matches or has no block.
+    private func sendPortraitCorrection(to peer: MCPeerID) {
+        guard let aperture = rigPortrait.correction(for: links[peer]?.capabilities?.portrait) else { return }
+        sendControl(.setportrait, RemoteCmd.SetPortrait(aperture: aperture), to: peer)
+    }
+
+    func rigPortraitForTesting() -> RigPortraitIntent { rigPortrait }
+
     /// "Automatic" / re-match: recompute best-in-intersection and apply it.
     public nonisolated func applyAutomaticVideoQuality() { tell(MCAutomaticVideoQuality()) }
 
@@ -1450,7 +1493,7 @@ public actor MulticamController {
     /// that can't (an older build, a single-lens phone, a Mac) hides it.
     private func rigSupportsPortrait() -> Bool {
         let live = order.compactMap { links[$0] }.filter { $0.status != .failed }
-        return !live.isEmpty && live.allSatisfy { $0.capabilities?.supportsPortrait == true }
+        return !live.isEmpty && live.allSatisfy { $0.capabilities?.portrait != nil }
     }
 
     /// The tray's snapshot, derived on demand from the live lane set — never
@@ -1478,7 +1521,17 @@ public actor MulticamController {
             standbyOn: rigPreviewMode == .standby,
             exposureAvailable: focusedPeer.flatMap { links[$0]?.capabilities?.exposure } != nil,
             exposureControlsOn: exposureControlsOn,
-            portraitAvailable: rigSupportsPortrait())
+            portraitAvailable: rigSupportsPortrait(),
+            portrait: rigPortraitReport())
+    }
+
+    /// What the rig's aperture ruler shows, read from the cameras'
+    /// reports, never from the tap: the focused camera's values first, and
+    /// the range every camera accepts.
+    private func rigPortraitReport() -> RigPortraitReport? {
+        let live = order.filter { links[$0].map { $0.status != .failed } ?? false }
+        let focusedFirst = live.filter { $0 == focusedPeer } + live.filter { $0 != focusedPeer }
+        return RigPortraitReport(states: focusedFirst.compactMap { links[$0]?.capabilities?.portrait })
     }
 
     // MARK: Ack aggregation (shared across photo / start / stop)
@@ -2114,6 +2167,11 @@ final class MCSetCameraMode: Message, @unchecked Sendable {
 final class MCSetAspectRatio: Message, @unchecked Sendable {
     let ratio: AspectRatio
     init(_ ratio: AspectRatio) { self.ratio = ratio; super.init(sender: nil) }
+}
+
+final class MCSetPortrait: Message, @unchecked Sendable {
+    let aperture: Float
+    init(aperture: Float) { self.aperture = aperture; super.init(sender: nil) }
 }
 
 final class MCSetExposureControls: Message, @unchecked Sendable {

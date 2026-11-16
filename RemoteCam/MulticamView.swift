@@ -44,6 +44,8 @@ struct MulticamView: View {
     let onExposureChange: (CameraLane, ExposureRulerKind, Double) -> Void
     /// The AUTO / MANUAL chip.
     let onSetExposureMode: (CameraLane, ExposureMode) -> Void
+    /// A drag on Portrait's aperture ruler (a rig setting: every camera).
+    let onApertureChange: (Float) -> Void
     /// Open the app's Settings sheet (purchases, restore, preferences).
     let onOpenSettings: () -> Void
     /// Open the help sheet (the shared one every screen presents).
@@ -256,6 +258,7 @@ struct MulticamView: View {
                 VStack(spacing: 14) {
                     exposureReadoutStrip
                     exposureRulers(axis: .horizontal)
+                    apertureRuler(axis: .horizontal)
                     focusedZoomPill
                     actionCluster(axis: .horizontal)
                 }
@@ -310,6 +313,16 @@ struct MulticamView: View {
         }
     }
 
+    /// Portrait mode's f-stop ruler, in the exposure rulers' column: across
+    /// the bottom, just above zoom, in portrait; standing beside the left
+    /// thumb's exposure ruler, inboard of it, in landscape.
+    @ViewBuilder
+    private func apertureRuler(axis: Axis) -> some View {
+        if let portrait = viewModel.portraitAperture {
+            ApertureRulerPill(portrait: portrait, axis: axis, onChange: onApertureChange)
+        }
+    }
+
     /// Wide shapes: the action cluster rides the docked rail; the strip and
     /// mode selector sit inboard — the monitor's `sideCluster` shape.
     private func sideCluster(onLeading: Bool) -> some View {
@@ -322,6 +335,7 @@ struct MulticamView: View {
         HStack(alignment: .bottom, spacing: 16) {
             if onLeading { actionCluster(axis: .vertical) }
             exposureRuler(side: .leading)
+            apertureRuler(axis: .vertical)
             if !onLeading { Spacer(minLength: 0) }
 
             VStack(spacing: 10) {
@@ -406,9 +420,9 @@ struct MulticamView: View {
            let focused = viewModel.focusedLane {
             ZoomPill(scale: viewModel.focusedZoomScale,
                      currentZoomFactor: viewModel.focusedZoomFactor,
-                     // Line up with the exposure rulers when they are on
-                     // screen; keep the tight lens cluster when alone.
-                     uniformTrackLength: viewModel.showsExposureControls
+                     // Line up with the exposure and aperture rulers when
+                     // any is on screen; keep the tight lens cluster alone.
+                     uniformTrackLength: viewModel.showsColumnRulers
                          ? ExposureRulerMetrics.track(axis: .horizontal) : nil,
                      onZoomChange: { onZoomChange(focused, $0) })
         }

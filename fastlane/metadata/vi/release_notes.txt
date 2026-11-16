@@ -1,2 +1,1 @@
-Phơi sáng thủ công: đặt tốc độ màn trập, ISO và bù phơi sáng từ điều khiển.
-Đa máy: kết nối tối đa bốn máy ảnh và chụp tất cả bằng một màn trập đồng bộ.
+Đã sửa lỗi ứng dụng bị thoát trên iPhone 18 Pro khi chuyển camera sang phơi sáng thủ công từ điều khiển.

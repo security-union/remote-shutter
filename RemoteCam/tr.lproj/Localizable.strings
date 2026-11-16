@@ -413,3 +413,9 @@
 "Zoom" = "Yakınlaştırma";
 "This camera can't do manual exposure" = "Bu kamera manuel pozlamayı desteklemiyor";
 "The camera ignored that exposure setting" = "Kamera bu pozlama ayarını yok saydı";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTOĞRAF";
+"PORTRAIT" = "PORTRE";
+"VIDEO" = "VİDEO";
+"Portrait blur aperture" = "Portre bulanıklığı diyaframı";

@@ -1,2 +1,1 @@
-Manuelle Belichtung: Verschlusszeit, ISO und Belichtungskorrektur von der Fernbedienung einstellen.
-Multicam: bis zu vier Kameras verbinden und alle mit einem synchronen Auslöser auslösen.
+Absturz auf dem iPhone 18 Pro behoben, der beim Umschalten der Kamera auf manuelle Belichtung über die Fernbedienung auftrat.

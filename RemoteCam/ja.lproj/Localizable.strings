@@ -413,3 +413,9 @@
 "Zoom" = "ズーム";
 "This camera can't do manual exposure" = "このカメラはマニュアル露出に対応していません";
 "The camera ignored that exposure setting" = "カメラがその露出設定を無視しました";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "写真";
+"PORTRAIT" = "ポートレート";
+"VIDEO" = "ビデオ";
+"Portrait blur aperture" = "ポートレートのぼけの絞り";

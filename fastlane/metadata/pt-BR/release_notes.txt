@@ -1,2 +1,1 @@
-Exposição manual: ajuste velocidade do obturador, ISO e compensação pelo controle.
-Multicam: conecte até quatro câmeras e dispare todas com um obturador sincronizado.
+Corrigido um travamento no iPhone 18 Pro ao mudar a câmera para exposição manual pelo controle.

@@ -307,3 +307,9 @@
 "Zoom" = "Zoom";
 "This camera can't do manual exposure" = "Esta cámara no permite exposición manual";
 "The camera ignored that exposure setting" = "La cámara ignoró ese ajuste de exposición";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTO";
+"PORTRAIT" = "RETRATO";
+"VIDEO" = "VIDEO";
+"Portrait blur aperture" = "Apertura del desenfoque de retrato";

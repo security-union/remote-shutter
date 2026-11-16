@@ -1,2 +1,1 @@
-Manual exposure: set shutter speed, ISO and exposure compensation from the remote.
-Multicam: connect up to four cameras and fire them all with one synced shutter.
+Fixed a crash on iPhone 18 Pro when switching the camera to manual exposure from the remote.

@@ -413,3 +413,9 @@
 "Zoom" = "Zum";
 "This camera can't do manual exposure" = "Kamera ini tidak menyokong pendedahan manual";
 "The camera ignored that exposure setting" = "Kamera mengabaikan tetapan pendedahan itu";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "FOTO";
+"PORTRAIT" = "POTRET";
+"VIDEO" = "VIDEO";
+"Portrait blur aperture" = "Bukaan kabur potret";

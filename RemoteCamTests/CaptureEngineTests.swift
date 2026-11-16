@@ -124,6 +124,79 @@ final class CaptureEngineTests: XCTestCase {
         XCTAssertFalse(engine.desiredTorchOn)
     }
 
+    // MARK: - Portrait
+
+    /// Portrait is offered only with the flag on, the photo preset and a
+    /// camera that delivers depth. It ships switched off.
+    func testPortraitIsOfferedOnlyWithTheFlagThePresetAndDepth() {
+        for enabled in [false, true] {
+            for photoPreset in [false, true] {
+                for deliversDepth in [false, true] {
+                    XCTAssertEqual(CaptureEngine.offersPortrait(enabled: enabled, photoPreset: photoPreset,
+                                                                deliversDepth: deliversDepth),
+                                   enabled && photoPreset && deliversDepth)
+                }
+            }
+        }
+        XCTAssertFalse(FeatureFlags.ENABLE_PORTRAIT_MODE)
+        XCTAssertFalse(CaptureEngine.offersPortrait(photoPreset: true, deliversDepth: true))
+    }
+
+    func testPortraitOpensAtTheDefaultAperture() {
+        XCTAssertEqual(CaptureEngine().portraitAperture, PortraitPreviewBlur.defaultAperture)
+    }
+
+    /// The camera stores the rig's f-number clamped into the range it
+    /// reports, and tells its own screen.
+    func testSetPortraitClampsStoresAndNotifies() async {
+        let engine = CaptureEngine()
+        var notified = 0
+        engine.onStatusChanged = { notified += 1 }
+
+        await engine.setPortrait(aperture: 2.8)
+        XCTAssertEqual(engine.portraitAperture, 2.8)
+        await engine.setPortrait(aperture: 40)
+        XCTAssertEqual(engine.portraitAperture, PortraitPreviewBlur.apertureRange.upperBound)
+        await engine.setPortrait(aperture: 0.5)
+        XCTAssertEqual(engine.portraitAperture, PortraitPreviewBlur.apertureRange.lowerBound)
+        await engine.setPortrait(aperture: .nan)
+        XCTAssertEqual(engine.portraitAperture, PortraitPreviewBlur.defaultAperture)
+        XCTAssertEqual(notified, 4)
+    }
+
+    /// Only a Portrait capture that carries depth is delivered as the
+    /// capture file; every other still is cropped to the aspect.
+    func testOnlyAPortraitCaptureWithDepthKeepsTheCaptureFile() {
+        for mode in [RecordingMode.Photo, .Video, .Shorts, .Portrait] {
+            for hasDepth in [false, true] {
+                XCTAssertEqual(CaptureEngine.keepsCaptureFile(mode: mode, hasDepth: hasDepth),
+                               mode == .Portrait && hasDepth, "\(mode) depth=\(hasDepth)")
+            }
+        }
+    }
+
+    func testPortraitAsksOnlyForOfferedMattes() {
+        XCTAssertEqual(CaptureEngine.portraitMatteTypes(available: []), [])
+        XCTAssertEqual(CaptureEngine.portraitMatteTypes(available: [.glasses, .hair]), [.hair, .glasses])
+        XCTAssertEqual(CaptureEngine.portraitMatteTypes(available: [.teeth, .skin, .hair, .glasses]),
+                       [.hair, .skin, .teeth, .glasses])
+    }
+
+    func testPortraitPhotoSizeIsTheLargestWithin24MPFromTheFormatsOwnList() throws {
+        let twelve = CMVideoDimensions(width: 4032, height: 3024)
+        let twentyFour = CMVideoDimensions(width: 5712, height: 4284)
+        let fortyEight = CMVideoDimensions(width: 8064, height: 6048)
+        let pick = { (dims: [CMVideoDimensions], depth: Bool) -> CMVideoDimensions? in
+            CaptureEngine.maxPhotoDimensions(supported: dims, depthEnabled: depth)
+        }
+        XCTAssertEqual(try XCTUnwrap(pick([twelve, fortyEight, twentyFour], true)).width, twentyFour.width)
+        XCTAssertEqual(try XCTUnwrap(pick([twelve, fortyEight, twentyFour], false)).width, fortyEight.width)
+        XCTAssertEqual(try XCTUnwrap(pick([twelve, fortyEight], true)).width, twelve.width)
+        XCTAssertEqual(try XCTUnwrap(pick([fortyEight], true)).width, fortyEight.width,
+                       "never a size the format does not list")
+        XCTAssertNil(pick([], true))
+    }
+
     func testSetAspectRatioUpdatesStateAndNotifies() async {
         let engine = CaptureEngine()
         var notified = false

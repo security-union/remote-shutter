@@ -413,3 +413,9 @@
 "Zoom" = "ज़ूम";
 "This camera can't do manual exposure" = "यह कैमरा मैनुअल एक्सपोज़र नहीं कर सकता";
 "The camera ignored that exposure setting" = "कैमरे ने उस एक्सपोज़र सेटिंग को अनदेखा कर दिया";
+
+// Director capture modes and Portrait controls
+"PHOTO" = "फ़ोटो";
+"PORTRAIT" = "पोर्ट्रेट";
+"VIDEO" = "वीडियो";
+"Portrait blur aperture" = "पोर्ट्रेट ब्लर का अपर्चर";

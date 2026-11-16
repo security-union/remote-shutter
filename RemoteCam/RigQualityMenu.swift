@@ -191,6 +191,9 @@ struct RigSettingsSnapshot: Equatable {
     var exposureControlsOn: Bool = false
     /// Every live camera in the rig can take Portrait stills.
     var portraitAvailable: Bool = false
+    /// Portrait's aperture as the cameras report it, with the range every
+    /// one accepts. Nil when no camera reports a block.
+    var portrait: RigPortraitReport?
 
     /// The glass quality tile cycles in place: Automatic → each enabled option
     /// in order → back to Automatic. `nil` is Automatic. Disabled options
@@ -234,5 +237,68 @@ struct RigSettingsSnapshot: Equatable {
             }
             return nil
         }
+    }
+}
+
+// MARK: - Portrait (rig aperture)
+
+/// Portrait's f-number as the director intends it. Nil until the operator
+/// drags the ruler or the first Portrait camera reports, so the rig opens at
+/// the camera's own default rather than a director constant. Pure; the
+/// controller fans it out (pinned by `MulticamControllerTests`).
+struct RigPortraitIntent: Equatable {
+    var aperture: Float?
+
+    /// Two f-numbers closer than this are the same setting (a float that
+    /// crossed the wire, or a camera that clamped by a rounding hair).
+    static let apertureTolerance: Float = 0.01
+
+    /// Fill what the rig has not chosen yet from a camera's report.
+    mutating func adopt(_ reported: PortraitState) {
+        if aperture == nil { aperture = reported.aperture }
+    }
+
+    /// Pull the aperture inside the range every camera accepts, so the rig
+    /// never asks one camera for what another cannot do. True when it moved.
+    mutating func fit(into report: RigPortraitReport?) -> Bool {
+        guard let report, let current = aperture else { return false }
+        let fitted = min(max(current, report.minAperture), report.maxAperture)
+        guard fitted != current else { return false }
+        aperture = fitted
+        return true
+    }
+
+    /// The f-number that brings a camera reporting `reported` in line with
+    /// the rig. Nil when it already matches or reports no Portrait block,
+    /// which is the capability. The aperture is clamped into the camera's
+    /// own range first, so a camera that cannot reach the rig's value is not
+    /// asked again and again.
+    func correction(for reported: PortraitState?) -> Float? {
+        guard let reported, let aperture else { return nil }
+        let reachable = min(max(aperture, reported.minAperture), reported.maxAperture)
+        return abs(reachable - reported.aperture) > Self.apertureTolerance ? reachable : nil
+    }
+}
+
+/// What the director's aperture ruler shows, read from the cameras' reports,
+/// never from the tap.
+struct RigPortraitReport: Equatable {
+    /// The first camera's applied aperture (the focused one, by the
+    /// controller's ordering), inside the rig's range.
+    let aperture: Float
+    /// The range every camera accepts: the intersection of their ranges, so
+    /// any value on the ruler lands on every camera unclamped.
+    let minAperture: Float
+    let maxAperture: Float
+
+    /// Nil when no camera reports a block, or their ranges share no value.
+    init?(states: [PortraitState]) {
+        guard let first = states.first,
+              let low = states.map(\.minAperture).max(),
+              let high = states.map(\.maxAperture).min(),
+              low <= high else { return nil }
+        aperture = min(max(first.aperture, low), high)
+        minAperture = low
+        maxAperture = high
     }
 }
