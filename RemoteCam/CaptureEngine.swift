@@ -1823,35 +1823,22 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     // MARK: - Portrait settings
 
     /// The rig's Portrait f-number, already clamped. Written only on
-    /// sessionQueue; read lock-free from the photo callback and the preview
-    /// queue (a Float's bit pattern, so it fits one atomic word).
-    private let portraitApertureBits = ManagedAtomic<UInt32>(PortraitRenderer.defaultAperture.bitPattern)
+    /// sessionQueue; read lock-free from the preview queue (a Float's bit
+    /// pattern, so it fits one atomic word).
+    private let portraitApertureBits = ManagedAtomic<UInt32>(PortraitPreviewBlur.defaultAperture.bitPattern)
 
     /// The f-number Portrait's blur uses now. Safe from any queue.
     var portraitAperture: Float {
         Float(bitPattern: portraitApertureBits.load(ordering: .acquiring))
     }
 
-    /// Baked or Editable. sessionQueue-confined; the photo callback reads it
-    /// through `currentPortraitOutputValue()`.
-    private var portraitOutput: PortraitOutput = .editable
-
-    /// Portrait's output for callers outside the session queue.
-    func currentPortraitOutputValue() -> PortraitOutput {
-        syncOnSessionQueue { portraitOutput }
-    }
-
-    /// Stores the director's Portrait settings; nil keeps the current value.
-    /// The aperture is clamped into the renderer's range. Rig settings: kept
-    /// across device swaps and mode changes, so they apply whenever Portrait
-    /// is next possible.
-    func setPortrait(aperture: Float?, output: PortraitOutput?) async {
+    /// Stores the director's Portrait f-number, clamped into the range the
+    /// camera reports. A rig setting: kept across device swaps and mode
+    /// changes, so it applies whenever Portrait is next possible.
+    func setPortrait(aperture: Float) async {
         await onSessionQueue {
-            if let aperture {
-                let clamped = PortraitRenderer.clampedAperture(aperture)
-                self.portraitApertureBits.store(clamped.bitPattern, ordering: .releasing)
-            }
-            if let output { self.portraitOutput = output }
+            let clamped = PortraitPreviewBlur.clampedAperture(aperture)
+            self.portraitApertureBits.store(clamped.bitPattern, ordering: .releasing)
             self.onStatusChanged?()
         }
     }
@@ -1860,17 +1847,34 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     /// device supports Portrait.
     private func portraitStateLocked(_ device: AVCaptureDevice) -> PortraitState? {
         guard Self.supportsPortrait(device) else { return nil }
-        let range = PortraitRenderer.apertureRange
+        let range = PortraitPreviewBlur.apertureRange
         return PortraitState(aperture: portraitAperture,
-                             minAperture: range.lowerBound, maxAperture: range.upperBound,
-                             output: portraitOutput)
+                             minAperture: range.lowerBound, maxAperture: range.upperBound)
+    }
+
+    /// Whether a finished still is delivered as the capture file itself. A
+    /// Portrait capture that carries depth is: depth and mattes embedded, no
+    /// blur in the pixels, native ratio, no re-encode, so Photos draws the
+    /// blur and offers its own depth control. Everything else is cropped to
+    /// the aspect ratio.
+    static func keepsCaptureFile(mode: RecordingMode, hasDepth: Bool) -> Bool {
+        mode == .Portrait && hasDepth
     }
 
     /// Whether `device` can take Portrait stills: it has formats that deliver
     /// depth (dual/triple back cameras, TrueDepth front) and the platform runs
     /// the photo preset (Mac cameras have no depth).
     static func supportsPortrait(_ device: AVCaptureDevice) -> Bool {
-        photoPresetSupported && device.formats.contains { !$0.supportedDepthDataFormats.isEmpty }
+        offersPortrait(photoPreset: photoPresetSupported,
+                       deliversDepth: device.formats.contains { !$0.supportedDepthDataFormats.isEmpty })
+    }
+
+    /// The one gate for Portrait. It decides both what the camera reports
+    /// and whether depth capture may turn on, so the feature flag switches
+    /// the whole mode off here.
+    static func offersPortrait(enabled: Bool = FeatureFlags.ENABLE_PORTRAIT_MODE,
+                               photoPreset: Bool, deliversDepth: Bool) -> Bool {
+        enabled && photoPreset && deliversDepth
     }
 
     /// Depth, the person matte and the hair/skin/teeth/glasses mattes (each
@@ -1881,6 +1885,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
     private func applyDepthDeliveryLocked() {
         dispatchPrecondition(condition: .onQueue(sessionQueue))
         let depth = captureMode == .Portrait && photoOutput.isDepthDataDeliverySupported
+            && (videoDeviceInput.map { Self.supportsPortrait($0.device) } ?? false)
         let matte = depth && photoOutput.isPortraitEffectsMatteDeliverySupported
         let segmentation = {
             depth ? Self.portraitMatteTypes(available: self.photoOutput.availableSemanticSegmentationMatteTypes) : []
@@ -2310,7 +2315,7 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
 
     /// Encodes `image` into `type` with `source`'s metadata, EXIF pixel
     /// dimensions rewritten to the image's size.
-    static func encode(_ image: CGImage, like source: CGImageSource, type: CFString) -> Data? {
+    private static func encode(_ image: CGImage, like source: CGImageSource, type: CFString) -> Data? {
         let properties = destinationProperties(
             of: source, croppedWidth: image.width, croppedHeight: image.height)
         let output = NSMutableData()
@@ -2375,8 +2380,8 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         }
         newSettings.photoQualityPrioritization = .quality
         if photoOutput.isDepthDataDeliveryEnabled {
-            // Everything the output delivers is embedded in the file: an
-            // Editable still is that file, and a Baked one is rendered from it.
+            // Everything the output delivers is embedded in the file, which
+            // is the Portrait still.
             newSettings.isDepthDataDeliveryEnabled = true
             newSettings.embedsDepthDataInPhoto = true
             newSettings.isPortraitEffectsMatteDeliveryEnabled = photoOutput.isPortraitEffectsMatteDeliveryEnabled
@@ -2406,23 +2411,14 @@ final class CaptureEngine: NSObject, AVCapturePhotoCaptureDelegate {
         guard let photoData = photo.fileDataRepresentation() else {
             return
         }
-        // Delivered on an AVFoundation callback queue; mode, Portrait output
-        // and aspect are read through the session queue. An Editable Portrait
-        // still is the capture file itself. Otherwise any ratio other than the
-        // still's own is a crop of the full capture; a failed render falls
-        // back to the crop, and a failed crop delivers the full frame.
-        let (mode, output, aspectRatio) = syncOnSessionQueue { (captureMode, portraitOutput, currentAspectRatio) }
-        switch PortraitRenderer.delivery(mode: mode, output: output, hasDepth: photo.depthData != nil) {
-        case .passThrough:
+        // Delivered on an AVFoundation callback queue; mode and aspect are
+        // read through the session queue. A Portrait still is the capture
+        // file itself. Otherwise any ratio other than the still's own is a
+        // crop of the full capture; a failed crop delivers the full frame.
+        let (mode, aspectRatio) = syncOnSessionQueue { (captureMode, currentAspectRatio) }
+        if Self.keepsCaptureFile(mode: mode, hasDepth: photo.depthData != nil) {
             onPicture?(photoData, nil)
             return
-        case .bake:
-            if let portrait = PortraitRenderer.render(photoData, aperture: portraitAperture, aspectRatio: aspectRatio) {
-                onPicture?(portrait, nil)
-                return
-            }
-        case .crop:
-            break
         }
         onPicture?(Self.cropPhotoData(photoData, to: aspectRatio) ?? photoData, nil)
     }

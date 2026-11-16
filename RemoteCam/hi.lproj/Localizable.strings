@@ -418,9 +418,4 @@
 "PHOTO" = "फ़ोटो";
 "PORTRAIT" = "पोर्ट्रेट";
 "VIDEO" = "वीडियो";
-"Editable" = "संपादन योग्य";
-"Baked" = "स्थायी";
-"Keeps depth so the blur can be changed in Photos" = "डेप्थ सहेजता है, ताकि फ़ोटो ऐप में ब्लर बदला जा सके";
-"Blur saved into the photo" = "ब्लर फ़ोटो में ही सहेजा जाता है";
 "Portrait blur aperture" = "पोर्ट्रेट ब्लर का अपर्चर";
-"Portrait photos" = "पोर्ट्रेट फ़ोटो";

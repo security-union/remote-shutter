@@ -33,7 +33,7 @@ public final class MulticamViewController: UIViewController {
     /// Portrait's aperture ruler, throttled the same way. A rig setting, so
     /// it has no target camera: the controller fans it out.
     private lazy var apertureSender = ThrottledValueSender { [weak self] aperture in
-        self?.controller.setPortrait(aperture: Float(aperture), output: nil)
+        self?.controller.setPortrait(aperture: Float(aperture))
     }
     private var trailingZoomTimer: Timer?
 
@@ -103,10 +103,6 @@ public final class MulticamViewController: UIViewController {
                 self?.controller.setExposure(intent, on: lane.peerID)
             },
             onApertureChange: { [weak self] aperture in self?.apertureSender.submit(Double(aperture)) },
-            onSetPortraitOutput: { [weak self] output in
-                logInfo("director: portrait output → \(output)")
-                self?.controller.setPortrait(aperture: nil, output: output)
-            },
             onOpenSettings: { [weak self] in
                 logInfo("director: settings opened")
                 self?.showPaywall()

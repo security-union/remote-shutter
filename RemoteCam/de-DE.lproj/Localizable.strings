@@ -418,9 +418,4 @@
 "PHOTO" = "FOTO";
 "PORTRAIT" = "PORTRÄT";
 "VIDEO" = "VIDEO";
-"Editable" = "Bearbeitbar";
-"Baked" = "Eingebrannt";
-"Keeps depth so the blur can be changed in Photos" = "Behält die Tiefe, damit die Unschärfe in Fotos änderbar bleibt";
-"Blur saved into the photo" = "Unschärfe wird ins Foto gespeichert";
 "Portrait blur aperture" = "Blende der Porträt-Unschärfe";
-"Portrait photos" = "Porträtfotos";

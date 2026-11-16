@@ -425,8 +425,7 @@ private func encodeCapabilitiesEnvelope(
     let exposureOffset = c.exposure.map { encodeExposureState($0, &fbb) } ?? Offset()
     let portraitOffset = c.portrait.map {
         RemoteShutter_PortraitState.createPortraitState(
-            &fbb, aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture,
-            output: toFBPortraitOutput($0.output))
+            &fbb, aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture)
     } ?? Offset()
     let stateOffset = RemoteShutter_CameraState.createCameraState(
         &fbb,
@@ -999,26 +998,8 @@ extension RemoteCmd.SetCameraMode {
 extension RemoteCmd.SetPortrait {
     func toFlatBuffer() -> Data {
         var fbb = FlatBufferBuilder()
-        let params = RemoteShutter_CommandParameters.createCommandParameters(
-            &fbb, portraitAperture: aperture ?? 0,
-            portraitOutput: output.map { toFBPortraitOutput($0) } ?? .unknown)
+        let params = RemoteShutter_CommandParameters.createCommandParameters(&fbb, portraitAperture: aperture)
         return buildCommand(&fbb, action: .setportrait, parameters: params)
-    }
-}
-
-func toFBPortraitOutput(_ output: PortraitOutput) -> RemoteShutter_PortraitOutput {
-    switch output {
-    case .baked: return .baked
-    case .editable: return .editable
-    }
-}
-
-/// Nil for Unknown/absent: "keep the camera's value".
-func fromFBPortraitOutput(_ output: RemoteShutter_PortraitOutput) -> PortraitOutput? {
-    switch output {
-    case .baked: return .baked
-    case .editable: return .editable
-    case .unknown: return nil
     }
 }
 
@@ -1244,12 +1225,10 @@ extension RemoteCmd {
             return SetCameraMode(mode: mode)
 
         case .setportrait:
-            // 0 / Unknown = keep. A command that changes nothing is malformed:
-            // dropped, never guessed.
-            let aperture = params.map(\.portraitAperture).flatMap { $0 > 0 ? $0 : nil }
-            let output = params.flatMap { fromFBPortraitOutput($0.portraitOutput) }
-            guard aperture != nil || output != nil else { return nil }
-            return SetPortrait(aperture: aperture, output: output)
+            // An f-number is positive. Anything else is malformed: dropped,
+            // never guessed.
+            guard let aperture = params?.portraitAperture, aperture > 0 else { return nil }
+            return SetPortrait(aperture: aperture)
 
         case .selectcameradevice:
             return SelectCameraDevice(uniqueID: params?.deviceUniqueId ?? "")
@@ -1389,8 +1368,7 @@ extension RemoteCmd {
             exposure: state?.exposure.map { decodeExposureState($0) },
             cameraMode: state.flatMap { fromFBRecordingMode($0.cameraMode) },
             portrait: state?.portrait.map {
-                PortraitState(aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture,
-                              output: fromFBPortraitOutput($0.output) ?? .editable)
+                PortraitState(aperture: $0.aperture, minAperture: $0.minAperture, maxAperture: $0.maxAperture)
             },
             inReplyTo: inReplyTo,
             error: error

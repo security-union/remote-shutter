@@ -297,9 +297,4 @@
 "PHOTO" = "FOTO";
 "PORTRAIT" = "PORTRÆT";
 "VIDEO" = "VIDEO";
-"Editable" = "Redigerbar";
-"Baked" = "Indbrændt";
-"Keeps depth so the blur can be changed in Photos" = "Bevarer dybden, så sløringen kan ændres i Fotos";
-"Blur saved into the photo" = "Sløringen gemmes i fotoet";
 "Portrait blur aperture" = "Blænde for portrætsløring";
-"Portrait photos" = "Portrætfotos";

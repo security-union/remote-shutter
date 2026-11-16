@@ -2520,16 +2520,14 @@ final class MulticamControllerTests: XCTestCase {
             supportsMulticam: true, portrait: portrait, inReplyTo: action, error: nil)
     }
 
-    private func portraitState(_ aperture: Float = 4.5, min: Float = 1.4, max: Float = 16,
-                               output: PortraitOutput = .editable) -> PortraitState {
-        PortraitState(aperture: aperture, minAperture: min, maxAperture: max, output: output)
+    private func portraitState(_ aperture: Float = 4.5, min: Float = 1.4, max: Float = 16) -> PortraitState {
+        PortraitState(aperture: aperture, minAperture: min, maxAperture: max)
     }
 
-    private func sentPortraits(_ transport: FakeMultipeerService)
-        -> [(peer: MCPeerID, aperture: Float?, output: PortraitOutput?)] {
-        sent(transport, RemoteCmd.SetPortrait.self).flatMap { entry -> [(MCPeerID, Float?, PortraitOutput?)] in
+    private func sentPortraits(_ transport: FakeMultipeerService) -> [(peer: MCPeerID, aperture: Float)] {
+        sent(transport, RemoteCmd.SetPortrait.self).flatMap { entry -> [(MCPeerID, Float)] in
             guard let cmd = entry.msg as? RemoteCmd.SetPortrait else { return [] }
-            return entry.peers.map { ($0, cmd.aperture, cmd.output) }
+            return entry.peers.map { ($0, cmd.aperture) }
         }
     }
 
@@ -2553,14 +2551,13 @@ final class MulticamControllerTests: XCTestCase {
             await controller.waitForIdle()
             XCTAssertTrue(sentPortraits(transport).isEmpty, "every camera already matches the rig")
 
-            controller.setPortrait(aperture: 2.8, output: nil)
+            controller.setPortrait(aperture: 2.8)
             await controller.waitForIdle()
 
             let expected = rig.peers.filter { !rig.withoutPortrait.contains($0) }
             let sends = sentPortraits(transport)
             XCTAssertEqual(sends.map(\.peer), expected, "\(rig.peers.count) cameras: the Portrait ones, once each")
-            XCTAssertTrue(sends.allSatisfy { $0.aperture == 2.8 && $0.output == nil },
-                          "only what changed travels; the output is kept")
+            XCTAssertTrue(sends.allSatisfy { $0.aperture == 2.8 })
             for peer in rig.peers {
                 let pending = await controller.pendingForTesting(peer, .setportrait)
                 XCTAssertEqual(pending, rig.withoutPortrait.contains(peer) ? 0 : 1)
@@ -2584,29 +2581,26 @@ final class MulticamControllerTests: XCTestCase {
     }
 
     /// A camera that joins, or swaps lens and comes back at its default, is
-    /// brought to the rig's aperture and output; the screen shows the
-    /// reports, never the tap.
+    /// brought to the rig's aperture; the screen shows the reports, never
+    /// the tap.
     func testPortraitCameraJoiningOrSwappingLensIsBroughtInLine() async {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(portraitCaps(portraitState()), from: camA)
         await controller.waitForIdle()
         var intent = await controller.rigPortraitForTesting()
-        XCTAssertEqual(intent, RigPortraitIntent(aperture: 4.5, output: .editable),
+        XCTAssertEqual(intent, RigPortraitIntent(aperture: 4.5),
                        "the rig opens at what the first camera reports")
 
-        controller.setPortrait(aperture: 2.8, output: .baked)
+        controller.setPortrait(aperture: 2.8)
         await controller.waitForIdle()
         XCTAssertEqual(sentPortraits(transport).map(\.peer), [camA])
         var settings = await controller.rigSettingsSnapshotForTesting()
         XCTAssertEqual(settings.portrait?.aperture, 4.5, "nothing is guessed from the tap")
-        XCTAssertEqual(settings.portrait?.output, .editable)
 
-        controller.didReceiveMessage(portraitCaps(portraitState(2.8, output: .baked), replyingTo: .setportrait),
-                                     from: camA)
+        controller.didReceiveMessage(portraitCaps(portraitState(2.8), replyingTo: .setportrait), from: camA)
         await controller.waitForIdle()
         settings = await controller.rigSettingsSnapshotForTesting()
         XCTAssertEqual(settings.portrait?.aperture, 2.8)
-        XCTAssertEqual(settings.portrait?.output, .baked)
 
         // camB joins at the camera default.
         controller.didReceiveMessage(portraitCaps(portraitState()), from: camB)
@@ -2615,26 +2609,20 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(sends.count, 2)
         XCTAssertEqual(sends.last?.peer, camB)
         XCTAssertEqual(sends.last?.aperture, 2.8)
-        XCTAssertEqual(sends.last?.output, .baked)
-        settings = await controller.rigSettingsSnapshotForTesting()
-        XCTAssertNil(settings.portrait?.output, "the cameras disagree until camB answers")
 
-        controller.didReceiveMessage(portraitCaps(portraitState(2.8, output: .baked), replyingTo: .setportrait),
-                                     from: camB)
+        controller.didReceiveMessage(portraitCaps(portraitState(2.8), replyingTo: .setportrait), from: camB)
         await controller.waitForIdle()
         XCTAssertEqual(sentPortraits(transport).count, 2)
 
-        // camB swaps lens and pushes a state with only the output reset.
-        controller.didReceiveMessage(portraitCaps(portraitState(2.8, output: .editable),
-                                                  replyingTo: .switchlens), from: camB)
+        // camB swaps lens and pushes a state back at its default.
+        controller.didReceiveMessage(portraitCaps(portraitState(), replyingTo: .switchlens), from: camB)
         await controller.waitForIdle()
         sends = sentPortraits(transport)
         XCTAssertEqual(sends.count, 3)
         XCTAssertEqual(sends.last?.peer, camB)
-        XCTAssertNil(sends.last?.aperture, "the aperture already matches")
-        XCTAssertEqual(sends.last?.output, .baked)
+        XCTAssertEqual(sends.last?.aperture, 2.8)
         intent = await controller.rigPortraitForTesting()
-        XCTAssertEqual(intent, RigPortraitIntent(aperture: 2.8, output: .baked))
+        XCTAssertEqual(intent, RigPortraitIntent(aperture: 2.8))
     }
 
     /// Mid-drag, a camera's replies trail the ruler. While a SetPortrait is
@@ -2643,9 +2631,9 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, transport, _) = await makeController(peers: [camA])
         controller.didReceiveMessage(portraitCaps(portraitState()), from: camA)
         await controller.waitForIdle()
-        controller.setPortrait(aperture: 4, output: nil)
-        controller.setPortrait(aperture: 3.5, output: nil)
-        controller.setPortrait(aperture: 2.8, output: nil)
+        controller.setPortrait(aperture: 4)
+        controller.setPortrait(aperture: 3.5)
+        controller.setPortrait(aperture: 2.8)
         await controller.waitForIdle()
         XCTAssertEqual(sentPortraits(transport).map(\.aperture), [4, 3.5, 2.8])
 
@@ -2668,7 +2656,7 @@ final class MulticamControllerTests: XCTestCase {
         let (controller, transport, _) = await makeController(peers: [camA, camB])
         controller.didReceiveMessage(portraitCaps(portraitState()), from: camA)
         await controller.waitForIdle()
-        controller.setPortrait(aperture: 1.4, output: nil)
+        controller.setPortrait(aperture: 1.4)
         controller.didReceiveMessage(portraitCaps(portraitState(1.4), replyingTo: .setportrait), from: camA)
         await controller.waitForIdle()
         XCTAssertEqual(sentPortraits(transport).count, 1)
@@ -2685,36 +2673,28 @@ final class MulticamControllerTests: XCTestCase {
         XCTAssertEqual(intent.aperture, 2)
     }
 
-    func testPortraitCorrectionCarriesOnlyWhatDiffers() {
-        let reported = PortraitState(aperture: 4.5, minAperture: 2, maxAperture: 11, output: .editable)
+    func testPortraitCorrectionIsTheReachableApertureOrNothing() {
+        let reported = PortraitState(aperture: 4.5, minAperture: 2, maxAperture: 11)
         XCTAssertNil(RigPortraitIntent().correction(for: reported), "no intent yet, nothing to say")
-        XCTAssertNil(RigPortraitIntent(aperture: 2.8, output: .baked).correction(for: nil),
-                     "no block: never sent")
-        XCTAssertNil(RigPortraitIntent(aperture: 4.505, output: .editable).correction(for: reported),
+        XCTAssertNil(RigPortraitIntent(aperture: 2.8).correction(for: nil), "no block: never sent")
+        XCTAssertNil(RigPortraitIntent(aperture: 4.505).correction(for: reported),
                      "within a rounding hair is a match")
-        XCTAssertEqual(RigPortraitIntent(aperture: 2.8, output: .editable).correction(for: reported),
-                       PortraitCorrection(aperture: 2.8, output: nil))
-        XCTAssertEqual(RigPortraitIntent(aperture: 4.5, output: .baked).correction(for: reported),
-                       PortraitCorrection(aperture: nil, output: .baked))
-        XCTAssertEqual(RigPortraitIntent(aperture: 1.4, output: nil).correction(for: reported),
-                       PortraitCorrection(aperture: 2, output: nil), "clamped into what the camera accepts")
-        XCTAssertNil(RigPortraitIntent(aperture: 1.4, output: nil)
+        XCTAssertEqual(RigPortraitIntent(aperture: 2.8).correction(for: reported), 2.8)
+        XCTAssertEqual(RigPortraitIntent(aperture: 1.4).correction(for: reported), 2,
+                       "clamped into what the camera accepts")
+        XCTAssertNil(RigPortraitIntent(aperture: 1.4)
                         .correction(for: PortraitState(aperture: 2, minAperture: 2, maxAperture: 11)),
                      "a camera already at its end is not asked again")
     }
 
-    func testPortraitReportIntersectsRangesAndAgreesOnOutput() {
+    func testPortraitReportIntersectsRanges() {
         XCTAssertNil(RigPortraitReport(states: []))
-        let wide = PortraitState(aperture: 1.4, minAperture: 1.4, maxAperture: 16, output: .baked)
-        let narrow = PortraitState(aperture: 4.5, minAperture: 2, maxAperture: 11, output: .baked)
+        let wide = PortraitState(aperture: 1.4, minAperture: 1.4, maxAperture: 16)
+        let narrow = PortraitState(aperture: 4.5, minAperture: 2, maxAperture: 11)
         let report = RigPortraitReport(states: [wide, narrow])
         XCTAssertEqual(report?.minAperture, 2)
         XCTAssertEqual(report?.maxAperture, 11)
         XCTAssertEqual(report?.aperture, 2, "the first camera's value, inside the shared range")
-        XCTAssertEqual(report?.output, .baked)
-        var editable = narrow
-        editable.output = .editable
-        XCTAssertNil(RigPortraitReport(states: [wide, editable])?.output, "disagreeing cameras show neither")
         XCTAssertNil(RigPortraitReport(states: [
             PortraitState(aperture: 2, minAperture: 1.4, maxAperture: 2),
             PortraitState(aperture: 4, minAperture: 4, maxAperture: 16)

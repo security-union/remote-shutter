@@ -418,9 +418,4 @@
 "PHOTO" = "FOTO";
 "PORTRAIT" = "POTRET";
 "VIDEO" = "VIDEO";
-"Editable" = "Boleh diedit";
-"Baked" = "Kekal";
-"Keeps depth so the blur can be changed in Photos" = "Menyimpan kedalaman supaya kabur boleh diubah dalam Foto";
-"Blur saved into the photo" = "Kabur disimpan dalam foto";
 "Portrait blur aperture" = "Bukaan kabur potret";
-"Portrait photos" = "Foto potret";

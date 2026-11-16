@@ -243,10 +243,9 @@ public actor MulticamController {
     /// pre-warm (the sensor reconfigure is paid at the toggle, not at the
     /// shutter). A setting, not an event: reconciled on join like aspect.
     private var rigCameraMode: RecordingMode = .Photo
-    /// Portrait's aperture and output: rig settings, one value each for
-    /// every camera, like the aspect. Each opens at what the first Portrait
-    /// camera reports (the camera owns the default), then follows the
-    /// operator.
+    /// Portrait's aperture: a rig setting, one value for every camera, like
+    /// the aspect. It opens at what the first Portrait camera reports (the
+    /// camera owns the default), then follows the operator.
     private var rigPortrait = RigPortraitIntent()
     /// The rig-wide camera-preview mode: standby blanks each camera's own
     /// on-screen preview (the director is the viewfinder; capture and the
@@ -558,8 +557,8 @@ public actor MulticamController {
             handleSetAspectRatio(a.ratio)
         case let p as MCSetPortrait:
             // A drag, not a press — firehose level, like zoom.
-            logDebug("director: portrait \(String(describing: p.aperture)) \(String(describing: p.output)) → all")
-            handleSetPortrait(aperture: p.aperture, output: p.output)
+            logDebug("director: portrait f/\(p.aperture) → all")
+            handleSetPortrait(aperture: p.aperture)
         case let t as MCSetRigTimer:
             logInfo("director: timer preset \(t.seconds)s")
             handleSetRigTimer(t.seconds)
@@ -693,7 +692,7 @@ public actor MulticamController {
             if let reported = caps.cameraMode, reported != rigCameraMode {
                 sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: rigCameraMode), to: peer)
             }
-            // Portrait's aperture and output, on the same gate. A camera with
+            // Portrait's aperture, on the same gate. A camera with
             // a SetPortrait still in flight is left alone until it answers:
             // mid-drag replies trail the ruler, and the last one settles it.
             // A camera with a narrower range narrows the rig, and every
@@ -1346,26 +1345,24 @@ public actor MulticamController {
         }
     }
 
-    /// Portrait's rig settings: the aperture of the blur and what the still
-    /// is (Baked or Editable). Nil keeps the rig's current value. Fanned out
-    /// to every camera that reports a Portrait block and differs; never sent
-    /// to one without the block.
-    public nonisolated func setPortrait(aperture: Float?, output: PortraitOutput?) {
-        tell(MCSetPortrait(aperture: aperture, output: output))
+    /// Portrait's rig setting: the aperture of the blur. Fanned out to every
+    /// camera that reports a Portrait block and differs; never sent to one
+    /// without the block.
+    public nonisolated func setPortrait(aperture: Float) {
+        tell(MCSetPortrait(aperture: aperture))
     }
 
-    private func handleSetPortrait(aperture: Float?, output: PortraitOutput?) {
-        if let aperture { rigPortrait.aperture = aperture }
-        if let output { rigPortrait.output = output }
+    private func handleSetPortrait(aperture: Float) {
+        rigPortrait.aperture = aperture
         _ = rigPortrait.fit(into: rigPortraitReport())
         for peer in order { sendPortraitCorrection(to: peer) }
     }
 
-    /// Bring one camera's Portrait settings in line with the rig, from what
+    /// Bring one camera's Portrait aperture in line with the rig, from what
     /// it last reported. Silent when it already matches or has no block.
     private func sendPortraitCorrection(to peer: MCPeerID) {
-        guard let change = rigPortrait.correction(for: links[peer]?.capabilities?.portrait) else { return }
-        sendControl(.setportrait, RemoteCmd.SetPortrait(aperture: change.aperture, output: change.output), to: peer)
+        guard let aperture = rigPortrait.correction(for: links[peer]?.capabilities?.portrait) else { return }
+        sendControl(.setportrait, RemoteCmd.SetPortrait(aperture: aperture), to: peer)
     }
 
     func rigPortraitForTesting() -> RigPortraitIntent { rigPortrait }
@@ -1528,7 +1525,7 @@ public actor MulticamController {
             portrait: rigPortraitReport())
     }
 
-    /// What the rig's Portrait controls show, read from the cameras'
+    /// What the rig's aperture ruler shows, read from the cameras'
     /// reports, never from the tap: the focused camera's values first, and
     /// the range every camera accepts.
     private func rigPortraitReport() -> RigPortraitReport? {
@@ -2173,12 +2170,8 @@ final class MCSetAspectRatio: Message, @unchecked Sendable {
 }
 
 final class MCSetPortrait: Message, @unchecked Sendable {
-    let aperture: Float?
-    let output: PortraitOutput?
-    init(aperture: Float?, output: PortraitOutput?) {
-        self.aperture = aperture; self.output = output
-        super.init(sender: nil)
-    }
+    let aperture: Float
+    init(aperture: Float) { self.aperture = aperture; super.init(sender: nil) }
 }
 
 final class MCSetExposureControls: Message, @unchecked Sendable {

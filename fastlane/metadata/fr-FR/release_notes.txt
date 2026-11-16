@@ -1,2 +1,2 @@
-Exposition manuelle : réglez vitesse d'obturation, ISO et correction depuis la télécommande.
-Multicam : connectez jusqu'à quatre appareils et déclenchez-les tous d'un seul déclencheur synchronisé.
+Correction d'un plantage sur iPhone 18 Pro lors du passage de l'appareil en exposition manuelle depuis la télécommande.
+Mettez à jour Remote Shutter sur tous vos appareils : la version 17 ne se jumelle qu'avec la version 17.

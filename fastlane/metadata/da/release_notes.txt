@@ -1,2 +1,2 @@
-Manuel eksponering: indstil lukkertid, ISO og eksponeringskompensation fra fjernbetjeningen.
-Multicam: forbind op til fire kameraer, og udløs dem alle med én synkron udløser.
+Rettet et nedbrud på iPhone 18 Pro, når kameraet blev skiftet til manuel eksponering fra fjernbetjeningen.
+Opdater Remote Shutter på alle enheder: version 17 kan kun parres med version 17.

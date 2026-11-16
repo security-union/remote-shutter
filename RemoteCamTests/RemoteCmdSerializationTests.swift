@@ -972,23 +972,12 @@ final class RemoteCmdSerializationTests: XCTestCase {
     // MARK: - SetPortrait + the portrait block of the state reply
 
     func testSetPortrait_roundTrip() {
-        let both: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: 2.8, output: .editable))
-        XCTAssertEqual(both.aperture, 2.8)
-        XCTAssertEqual(both.output, .editable)
+        let decoded: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: 2.8))
+        XCTAssertEqual(decoded.aperture, 2.8)
     }
 
-    /// 0 / Unknown on the wire mean "keep": each half travels alone.
-    func testSetPortraitCarriesEachSettingAlone() {
-        let apertureOnly: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: 8, output: nil))
-        XCTAssertEqual(apertureOnly.aperture, 8)
-        XCTAssertNil(apertureOnly.output)
-        let outputOnly: RemoteCmd.SetPortrait = roundTrip(RemoteCmd.SetPortrait(aperture: nil, output: .baked))
-        XCTAssertNil(outputOnly.aperture)
-        XCTAssertEqual(outputOnly.output, .baked)
-    }
-
-    /// A SetPortrait that changes nothing is malformed: dropped.
-    func testSetPortraitWithNothingToChangeIsDropped() {
+    /// A SetPortrait without a positive f-number is malformed: dropped.
+    func testSetPortraitWithoutAnApertureIsDropped() {
         var fbb = FlatBufferBuilder()
         let cmd = RemoteShutter_CameraCommand.createCameraCommand(&fbb, action: .setportrait)
         let msg = RemoteShutter_P2PMessage.createP2PMessage(&fbb, type: .cameracommand, commandOffset: cmd)
@@ -997,7 +986,7 @@ final class RemoteCmdSerializationTests: XCTestCase {
     }
 
     func testCapabilitiesCarryThePortraitBlockAndMode() {
-        let block = PortraitState(aperture: 2.8, minAperture: 1.4, maxAperture: 16, output: .baked)
+        let block = PortraitState(aperture: 2.8, minAperture: 1.4, maxAperture: 16)
         let caps = RemoteCmd.CameraCapabilitiesResp(
             frontCamera: nil, backCamera: nil,
             currentCamera: .back, currentLens: .wideAngle, currentZoom: 1.0,

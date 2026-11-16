@@ -312,9 +312,4 @@
 "PHOTO" = "FOTO";
 "PORTRAIT" = "RETRATO";
 "VIDEO" = "VIDEO";
-"Editable" = "Editable";
-"Baked" = "Integrado";
-"Keeps depth so the blur can be changed in Photos" = "Conserva la profundidad para cambiar el desenfoque en Fotos";
-"Blur saved into the photo" = "El desenfoque queda guardado en la foto";
 "Portrait blur aperture" = "Apertura del desenfoque de retrato";
-"Portrait photos" = "Fotos de retrato";

@@ -120,17 +120,20 @@ reply, capability by presence, one row in the phase table, one gated
 
 ## Portrait
 
-`SetPortrait` (action 36) follows the same shape. It carries Portrait's two
-rig settings, which every camera gets the same: `portrait_aperture`, the
-f-number (0 = keep), and `portrait_output` (Unknown = keep). Baked renders
-the blur into the still. Editable delivers the capture file untouched, with
-depth and mattes and no blur, at the native ratio, so Photos offers its own
-depth control.
+`SetPortrait` (action 36) follows the same shape. It carries Portrait's one
+rig setting, which every camera gets the same: `portrait_aperture`, the
+f-number of the blur.
+
+Portrait is behind `FeatureFlags.ENABLE_PORTRAIT_MODE`, which is off: no
+camera reports the block, so no director offers the mode.
+
+A Portrait still is the capture file untouched, with depth and mattes
+embedded and no blur in the pixels, at the native ratio, so Photos draws the
+blur and offers its own depth control. There is no other output.
 
 The state reply carries an optional `PortraitState` block: the applied
-aperture, the range this camera accepts, and the output. Its presence is the
-capability, as with `ExposureState`: the active camera can take Portrait
-stills. The range is f/1.4...f/16, narrowed to what Core Image's depth blur
-accepts (`PortraitRenderer.apertureRange`). The camera opens at f/4.5
-(`PortraitRenderer.defaultAperture`) and Editable, and keeps both across device
-swaps and mode changes.
+aperture and the range this camera accepts. Its presence is the capability,
+as with `ExposureState`: the active camera can take Portrait stills. The
+range is f/1.4...f/16 (`PortraitPreviewBlur.apertureRange`). The camera opens
+at f/4.5 (`PortraitPreviewBlur.defaultAperture`) and keeps the value across
+device swaps and mode changes.

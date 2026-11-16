@@ -418,9 +418,4 @@
 "PHOTO" = "FOTO";
 "PORTRAIT" = "RETRATO";
 "VIDEO" = "VÍDEO";
-"Editable" = "Editável";
-"Baked" = "Aplicado";
-"Keeps depth so the blur can be changed in Photos" = "Mantém a profundidade para mudar o desfoque no Fotos";
-"Blur saved into the photo" = "Desfoque salvo na foto";
 "Portrait blur aperture" = "Abertura do desfoque de retrato";
-"Portrait photos" = "Fotos em retrato";

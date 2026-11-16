@@ -1,2 +1,2 @@
-Manuel pozlama: enstantane hızını, ISO'yu ve pozlama telafisini uzaktan kumandadan ayarlayın.
-Çoklu kamera: dört kameraya kadar bağlayın ve hepsini tek bir senkron deklanşörle çekin.
+iPhone 18 Pro'da kamera uzaktan kumandadan manuel pozlamaya alındığında oluşan çökme düzeltildi.
+Remote Shutter'ı tüm cihazlarınızda güncelleyin: sürüm 17 yalnızca sürüm 17 ile eşleşir.

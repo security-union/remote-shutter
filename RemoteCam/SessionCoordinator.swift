@@ -1218,7 +1218,7 @@ public actor SessionCoordinator {
                 ctrl.currentCameraMode = mode.mode
                 ctrl.updateCameraStatus()
             case let portrait as RemoteCmd.SetPortrait:
-                await ctrl.setPortrait(aperture: portrait.aperture, output: portrait.output)
+                await ctrl.setPortrait(aperture: portrait.aperture)
             default:
                 break
             }

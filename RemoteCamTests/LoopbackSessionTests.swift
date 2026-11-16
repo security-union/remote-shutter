@@ -612,7 +612,7 @@ class LoopbackSessionTests: XCTestCase {
             (.setaspectratio, RemoteCmd.SetAspectRatio(aspectRatio: .sixteenNine)),
             (.setcamerapreviewmode, RemoteCmd.SetCameraPreviewMode(mode: .standby)),
             (.setexposure, RemoteCmd.SetExposure(intent: .manual(durationSeconds: 1.0 / 250, iso: 400))),
-            (.setportrait, RemoteCmd.SetPortrait(aperture: 2.8, output: .baked))
+            (.setportrait, RemoteCmd.SetPortrait(aperture: 2.8))
         ]
         // Idle: everything applies.
         for (action, cmd) in commands {
@@ -888,27 +888,23 @@ class LoopbackSessionTests: XCTestCase {
 
     // MARK: - Portrait (Docs/control-plane.md)
 
-    /// The rig's aperture and output reach a Portrait camera over the wire,
+    /// The rig's aperture reaches a Portrait camera over the wire,
     /// the camera answers once with what it applied, and the rig's report
     /// shows the camera's value with nothing left in flight.
     func testSetPortraitHappyPathAcrossTheWire() async {
         let fakeCamera = await connectCameraAndDirector { fake in
             fake.portraitState = PortraitState(aperture: 4.5, minAperture: 1.4, maxAperture: 16)
         }
-        director.setPortrait(aperture: 2.8, output: .baked)
+        director.setPortrait(aperture: 2.8)
         await drainBoth()
 
-        XCTAssertEqual(fakeCamera.portraitRequests.count, 1)
-        XCTAssertEqual(fakeCamera.portraitRequests.first?.aperture, 2.8)
-        XCTAssertEqual(fakeCamera.portraitRequests.first?.output, .baked)
+        XCTAssertEqual(fakeCamera.portraitRequests, [2.8])
         let resps = replies(to: .setportrait)
         XCTAssertEqual(resps.count, 1)
         XCTAssertNil(resps.first?.error)
         XCTAssertEqual(resps.first?.portrait?.aperture, 2.8)
-        XCTAssertEqual(resps.first?.portrait?.output, .baked)
         let settings = await director.rigSettingsSnapshotForTesting()
         XCTAssertEqual(settings.portrait?.aperture, 2.8)
-        XCTAssertEqual(settings.portrait?.output, .baked)
         let pending = await director.pendingForTesting(cameraPeer, .setportrait)
         XCTAssertEqual(pending, 0)
         XCTAssertTrue(directorDisplay.transientErrors.isEmpty)
@@ -918,7 +914,7 @@ class LoopbackSessionTests: XCTestCase {
     /// sent SetPortrait.
     func testSetPortraitIsNeverSentToACameraWithoutTheBlock() async {
         let fakeCamera = await connectCameraAndDirector()
-        director.setPortrait(aperture: 2.8, output: .baked)
+        director.setPortrait(aperture: 2.8)
         await drainBoth()
         XCTAssertFalse(directorTransport.sentMessages.contains { $0 is RemoteCmd.SetPortrait })
         XCTAssertTrue(fakeCamera.portraitRequests.isEmpty)

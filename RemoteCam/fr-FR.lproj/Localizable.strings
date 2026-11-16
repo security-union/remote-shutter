@@ -312,9 +312,4 @@
 "PHOTO" = "PHOTO";
 "PORTRAIT" = "PORTRAIT";
 "VIDEO" = "VIDÉO";
-"Editable" = "Modifiable";
-"Baked" = "Intégré";
-"Keeps depth so the blur can be changed in Photos" = "Garde la profondeur pour modifier le flou dans Photos";
-"Blur saved into the photo" = "Le flou est enregistré dans la photo";
 "Portrait blur aperture" = "Ouverture du flou portrait";
-"Portrait photos" = "Photos portrait";

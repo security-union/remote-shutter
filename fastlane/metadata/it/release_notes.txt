@@ -1,2 +1,2 @@
-Esposizione manuale: imposta tempo di posa, ISO e compensazione dal telecomando.
-Multicam: collega fino a quattro fotocamere e scattale tutte con uno scatto sincronizzato.
+Risolto un arresto anomalo su iPhone 18 Pro quando si passava la fotocamera all'esposizione manuale dal telecomando.
+Aggiorna Remote Shutter su tutti i dispositivi: la versione 17 si abbina solo con la versione 17.

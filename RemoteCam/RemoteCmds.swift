@@ -873,17 +873,15 @@ public class RemoteCmd: Message, @unchecked Sendable {
 
     // MARK: - Portrait Command
 
-    /// Director -> camera: Portrait's rig settings. Nil = keep the camera's
-    /// value. The camera clamps the aperture into the range it reports and
-    /// answers, like every control command, with its full state. Only sent to
-    /// a camera whose state carries a `portrait` block.
+    /// Director -> camera: Portrait's rig setting, the f-number of the blur.
+    /// The camera clamps it into the range it reports and answers, like every
+    /// control command, with its full state. Only sent to a camera whose
+    /// state carries a `portrait` block.
     public class SetPortrait: Message, @unchecked Sendable {
-        public let aperture: Float?
-        public let output: PortraitOutput?
+        public let aperture: Float
 
-        public init(aperture: Float?, output: PortraitOutput?) {
+        public init(aperture: Float) {
             self.aperture = aperture
-            self.output = output
             super.init(sender: nil)
         }
     }
@@ -914,30 +912,20 @@ extension RemoteShutter_RefusalReason {
     }
 }
 
-/// What a Portrait still is.
-public enum PortraitOutput: Equatable, Sendable {
-    /// The blur is rendered into the still.
-    case baked
-    /// The default. The capture file is delivered untouched, with depth and mattes
-    /// embedded and no blur, at the native ratio, so Photos offers its own
-    /// depth control.
-    case editable
-}
-
 /// Portrait's settings, as the camera reports them in every state reply: the
-/// f-number applied to the blur, the range this camera accepts, and the
-/// output. Presence is the capability (carried exactly when the active camera
-/// can take Portrait stills).
+/// f-number applied to the blur and the range this camera accepts. Presence
+/// is the capability (carried exactly when the active camera can take
+/// Portrait stills). A Portrait still is the capture file itself, with depth
+/// and mattes embedded and no blur in the pixels, so Photos draws the blur
+/// and offers its own depth control.
 public struct PortraitState: Equatable, Sendable {
     public var aperture: Float
     public var minAperture: Float
     public var maxAperture: Float
-    public var output: PortraitOutput
 
-    public init(aperture: Float, minAperture: Float, maxAperture: Float, output: PortraitOutput = .editable) {
+    public init(aperture: Float, minAperture: Float, maxAperture: Float) {
         self.aperture = aperture
         self.minAperture = minAperture
         self.maxAperture = maxAperture
-        self.output = output
     }
 }

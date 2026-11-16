@@ -62,6 +62,19 @@ final class LiveDepth: NSObject, AVCaptureDepthDataOutputDelegate, @unchecked Se
 /// Confined to the preview lane.
 final class PortraitPreviewBlur {
 
+    /// Apple's Camera opens Portrait at f/4.5; so does a camera here until the
+    /// director asks for another f-number.
+    static let defaultAperture: Float = 4.5
+    /// The f-numbers a camera reports and accepts: Apple's Depth Control range.
+    static let apertureRange: ClosedRange<Float> = 1.4...16
+
+    /// `aperture` clamped into `apertureRange`; the default for a value that
+    /// is not a number.
+    static func clampedAperture(_ aperture: Float) -> Float {
+        guard aperture.isFinite else { return defaultAperture }
+        return min(max(aperture, apertureRange.lowerBound), apertureRange.upperBound)
+    }
+
     /// Blur radius at f/1.4 as a fraction of the frame's long edge. Smaller
     /// apertures scale it down by `1.4 / f`, so f/16 is about a pixel.
     static let maxRadiusFraction: Float = 0.02

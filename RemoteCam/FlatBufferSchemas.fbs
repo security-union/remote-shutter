@@ -94,24 +94,12 @@ enum CommandAction : byte {
                                // control command. Only sent to a camera whose
                                // CameraState reports camera_mode (presence is
                                // the capability, as with ExposureState).
-    SetPortrait = 36           // director -> camera: Portrait's rig settings,
-                               // the simulated f-number and the output.
-                               // Payload portrait_aperture (0 = keep) and
-                               // portrait_output (Unknown = keep); the camera
-                               // clamps the aperture into its reported range.
-                               // Answered like every control command. Only
-                               // sent to a camera whose CameraState carries
-                               // a PortraitState.
-}
-
-// What a Portrait still is. Baked: the blur is rendered into the still.
-// Editable (the default): the capture file is delivered untouched, with depth and mattes
-// embedded and no blur, at the native ratio, so Photos offers its own depth
-// control. Never both files.
-enum PortraitOutput : byte {
-    Unknown = 0,
-    Baked = 1,
-    Editable = 2
+    SetPortrait = 36           // director -> camera: Portrait's rig setting,
+                               // the simulated f-number of the blur. Payload
+                               // portrait_aperture; the camera clamps it into
+                               // its reported range. Answered like every
+                               // control command. Only sent to a camera whose
+                               // CameraState carries a PortraitState.
 }
 
 // Auto vs. manual exposure, as the camera reports it and the director asks.
@@ -296,10 +284,8 @@ table CommandParameters {
     exposure_iso: float;
     // SetCameraMode payload: the director's photo/video toggle.
     camera_mode: RecordingModeEnum;
-    // SetPortrait payload: the f-number asked for (0 = keep the camera's)
-    // and the output (Unknown = keep).
+    // SetPortrait payload: the f-number asked for.
     portrait_aperture: float;
-    portrait_output: PortraitOutput;
 }
 
 // MARK: - Command Structure
@@ -393,8 +379,8 @@ table ExposureState {
     max_frame_duration_seconds: double;
 }
 
-// Portrait's settings on the camera: the f-number applied to the blur, the
-// range this camera accepts, and the output. Presence in CameraState is the
+// Portrait's settings on the camera: the f-number applied to the blur and
+// the range this camera accepts. Presence in CameraState is the
 // capability: the active camera can take Portrait stills (it delivers depth).
 // Absent = a director must not send Portrait or SetPortrait; it offers the
 // mode only when every camera in the rig reports this block.
@@ -402,7 +388,6 @@ table PortraitState {
     aperture: float;
     min_aperture: float;
     max_aperture: float;
-    output: PortraitOutput;
 }
 
 table CameraState {
@@ -427,6 +412,8 @@ table CameraState {
     // stills, video = the selected video format). Absent/Unknown = peer
     // predates mode pre-warming; a director must not send SetCameraMode.
     camera_mode: RecordingModeEnum;
+    // deprecated (16.1.0 only): slot retained.
+    supports_portrait: bool (deprecated);
     // Portrait's settings; present exactly when the active camera can take
     // Portrait stills. Moves with every device swap.
     portrait: PortraitState;

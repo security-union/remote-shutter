@@ -587,7 +587,7 @@ final class MulticamGridSnapshotTests: SnapshotTestCase {
                      onSetAspectRatio: { _ in }, onSetStandby: { _ in },
                      onSetExposureControls: { _ in }, onExposureChange: { _, _, _ in },
                      onSetExposureMode: { _, _ in }, onApertureChange: { _ in },
-                     onSetPortraitOutput: { _ in }, onOpenSettings: {}, onOpenHelp: {},
+                     onOpenSettings: {}, onOpenHelp: {},
                      onRetryCollection: { _ in }, onFlipCamera: { _ in },
                      onSelectCameraDevice: { _, _ in }, onToggleTorch: { _ in },
                      onToggleFlash: { _ in }, onDisconnectCamera: { _ in },

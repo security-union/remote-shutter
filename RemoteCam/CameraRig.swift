@@ -540,8 +540,8 @@ extension CameraRig: CameraControlling {
         try await engine.switchLens(to: lensType)
     }
 
-    func setPortrait(aperture: Float?, output: PortraitOutput?) async {
-        await engine.setPortrait(aperture: aperture, output: output)
+    func setPortrait(aperture: Float) async {
+        await engine.setPortrait(aperture: aperture)
     }
 
     func setVideoQuality(resolution: VideoResolution, frameRate: VideoFrameRate) async -> (VideoResolution, VideoFrameRate)? {

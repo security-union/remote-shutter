@@ -418,9 +418,4 @@
 "PHOTO" = "FOTOĞRAF";
 "PORTRAIT" = "PORTRE";
 "VIDEO" = "VİDEO";
-"Editable" = "Düzenlenebilir";
-"Baked" = "Kalıcı";
-"Keeps depth so the blur can be changed in Photos" = "Derinliği saklar, bulanıklık Fotoğraflar’da değiştirilebilir";
-"Blur saved into the photo" = "Bulanıklık fotoğrafa kaydedilir";
 "Portrait blur aperture" = "Portre bulanıklığı diyaframı";
-"Portrait photos" = "Portre fotoğrafları";

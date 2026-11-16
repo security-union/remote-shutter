@@ -418,9 +418,4 @@
 "PHOTO" = "ФОТО";
 "PORTRAIT" = "ПОРТРЕТ";
 "VIDEO" = "ВИДЕО";
-"Editable" = "Редактируемый";
-"Baked" = "Встроенный";
-"Keeps depth so the blur can be changed in Photos" = "Сохраняет глубину, чтобы размытие можно было изменить в «Фото»";
-"Blur saved into the photo" = "Размытие сохраняется в снимке";
 "Portrait blur aperture" = "Диафрагма размытия портрета";
-"Portrait photos" = "Портретные снимки";

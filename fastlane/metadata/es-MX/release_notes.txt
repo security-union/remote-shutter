@@ -1,2 +1,2 @@
-Exposición manual: ajusta velocidad de obturación, ISO y compensación desde el control.
-Multicam: conecta hasta cuatro cámaras y dispáralas todas con un obturador sincronizado.
+Se corrigió un cierre inesperado en el iPhone 18 Pro al cambiar la cámara a exposición manual desde el control.
+Actualiza Remote Shutter en todos tus dispositivos: la versión 17 solo se empareja con la versión 17.
