@@ -3,11 +3,20 @@ import { getAllPostSlugs, getPost } from '@/lib/blog';
 import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import JsonLd from '@/components/JsonLd';
+import RatingsTrendChart from '@/components/RatingsTrendChart';
 import { SITE_URL, BASE_PATH } from '@/lib/constants';
 import styles from './post.module.css';
 
 interface Props {
   params: Promise<{ slug: string }>;
+}
+
+/** A paragraph holding only `[[chart:<name>]]` in a post becomes a live chart. */
+function splitOnCharts(html: string): { html: string; chart?: string }[] {
+  return html
+    .split(/<p>\[\[chart:([\w-]+)\]\]<\/p>/)
+    .map((piece, index) => (index % 2 === 1 ? { html: '', chart: piece } : { html: piece }))
+    .filter((part) => part.chart || part.html.trim());
 }
 
 export function generateStaticParams() {
@@ -135,10 +144,15 @@ export default async function BlogPost({ params }: Props) {
               </time>
             </div>
           </header>
-          <div
-            className={styles.content}
-            dangerouslySetInnerHTML={{ __html: post.contentHtml }}
-          />
+          <div className={styles.content}>
+            {splitOnCharts(post.contentHtml).map((part, index) =>
+              part.chart ? (
+                <RatingsTrendChart key={index} name={part.chart} />
+              ) : (
+                <div key={index} dangerouslySetInnerHTML={{ __html: part.html }} />
+              )
+            )}
+          </div>
           {post.faq.length > 0 && (
             <section className={styles.content} aria-label="Frequently asked questions">
               <h2>Frequently asked questions</h2>
