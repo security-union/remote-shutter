@@ -1,0 +1,96 @@
+.figure {
+  --chart-blue: #3987e5;
+  --chart-orange: #d95926;
+  --chart-red: #e66767;
+  --chart-grey: rgba(195, 194, 183, 0.35);
+  --chart-band: rgba(57, 135, 229, 0.22);
+  --chart-grid: #2a2a2a;
+  --chart-tick: #8f8e88;
+  margin: 2rem 0;
+  padding: 1rem 1rem 0.75rem;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+
+.title {
+  font-weight: 600;
+  font-size: 1rem;
+  line-height: 1.4;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  font-size: 0.8rem;
+  color: var(--muted);
+  margin: 0.25rem 0 0.5rem;
+  line-height: 1.4;
+}
+
+.swatch {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  margin-right: 6px;
+  vertical-align: -1px;
+}
+
+.round {
+  border-radius: 50%;
+}
+
+.blue { background: var(--chart-blue); }
+.orange { background: var(--chart-orange); }
+.red { background: var(--chart-red); }
+.grey { background: var(--chart-grey); }
+.band { background: var(--chart-band); }
+.none { display: none; }
+
+.plot {
+  position: relative;
+}
+
+.plot svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+.grid { stroke: var(--chart-grid); stroke-width: 1; }
+.axis { stroke: var(--chart-tick); stroke-width: 1; }
+.divider { stroke: var(--chart-tick); stroke-dasharray: 3 3; }
+.tick { fill: var(--chart-tick); font-size: 11px; }
+.value { fill: var(--foreground); font-size: 12px; font-weight: 600; }
+.line { fill: none; stroke: var(--chart-blue); stroke-width: 2; }
+.blueDot { fill: var(--chart-blue); stroke: var(--background); stroke-width: 2; transition: r 0.1s; }
+.orangeDot { fill: var(--chart-orange); stroke: var(--background); stroke-width: 2; transition: r 0.1s; }
+.bandFill { fill: var(--chart-band); }
+.reviewDot { fill: var(--chart-grey); }
+.reviewDotActive { fill: var(--foreground); }
+.posBar { fill: var(--chart-blue); }
+.negBar { fill: var(--chart-red); }
+.highlight { fill: rgba(255, 255, 255, 0.05); }
+.hit { fill: transparent; cursor: crosshair; }
+
+.tooltip {
+  position: absolute;
+  top: 0;
+  pointer-events: none;
+  background: #f0efec;
+  color: #111;
+  font-size: 0.78rem;
+  line-height: 1.45;
+  padding: 0.4rem 0.6rem;
+  border-radius: 6px;
+  white-space: nowrap;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  z-index: 2;
+}
+
+.tooltipHead {
+  font-weight: 600;
+}
