@@ -2,104 +2,127 @@
 title: "Return of the Five Stars"
 date: "2026-11-18"
 author: "Dario Lencina"
-description: "How Remote Shutter's new US ratings went to 4.99 stars: measuring rating velocity, answering every review, and asking only after the app has worked."
+description: "How to measure rating velocity with a public Apple API, use written reviews as a bug tracker, and find the bugs hiding in a review prompt, with Remote Shutter's numbers as proof."
 ---
 
-![Return of the Five Stars: a parody movie poster of the author holding an iPhone up under five gold stars](/blog/listening-to-customers/return-of-the-five-stars.jpg)
+![Return of the Five Stars: a parody poster of the author fighting a software bug with a lightsaber while a giant bug looms](/blog/listening-to-customers/return-of-the-five-stars.jpg)
 
 *Nobody's going to rate you five stars for trying.*
 
-**BLUF:** In four months the US, our biggest market, went from 3.51★ to 3.69★. The 9 US ratings we got since July average **4.99★**, so basically every one of them is a five, and they are coming in five times faster than in our first 13 years (65 ratings total). Worldwide we went from 3.28★ to 3.41★, and new ratings now average **4.53★**. We got there by listening. We answered every review and shipped what people asked for, and then we asked for a rating at the right moment, after the app worked for you, instead of showing the rate button only to people who paid.
+**BLUF:** Remote Shutter sat at 3.51★ in the US for 13 years, on 65 ratings. Since July the new US ratings average 4.99★, so basically all fives, and they arrive about five times faster than before. Worldwide, across 37 storefronts, the latest ratings average 4.53★. Let me show you what I changed, in the order I would do it on your app, and the bugs I found in my own review prompt. How to measure it comes at the end.
 
-## Position and velocity
+## Ask everybody, after the app worked
 
-The example I give people is basic kinematics. Your lifetime App Store average is your position. It's the integral of every rating since 2013, so it barely moves, and looking at it tells you nothing about this week.
+Who you ask and when moves the rating more than anything else in this post. Ask everyone, and only after the app did its job for them.
 
-The average of the *new* ratings is your velocity, and that's the number I steer by. Position only catches up if velocity stays above it for long enough, and ours has been above it in every period since July.[^1]
+Before July my rate button lived inside a thank-you block that only purchasers saw, and that's about 4% of users. Paying is not a proxy for happy, and guideline 5.6.3 discourages selecting who gets asked. Everybody else waited for the system prompt, which fired after 10 captures.
 
-[[chart:periods]]
+Now anyone gets asked after 5 verified captures. Verified means the save to Photos succeeded. A failed save counts nothing, and a shot on a 3-camera rig counts 3. Shutter taps, app launches and purchases don't count at all.
 
-The first column is 13 years of history, 184 ratings at 3.28★. Every column after that is what came in between two snapshots. Hover any column and you'll see the split.
+The rest of the rules are small. Ask at most 4 times ever, and once per build. Never ask over the welcome screen. Wait 2 seconds after the shot so the sheet doesn't cover the photo. Keep a row in Settings that is always there.
 
-## We listened
+## A rate button can do nothing when tapped
 
-I answer every review. Right now that's 99 out of 100, and the one I haven't answered came in last week. When a complaint is real I put it in the queue, and when the fix ships I go back and reply again.
+Check what your "Rate" button calls. If it calls `SKStoreReviewController`, iOS throttles it to about three prompts a year, and the API is allowed to show nothing. That's fine for a prompt nobody requested. On a button it means a tap with no result.
 
-| What they wrote | What shipped | Time |
+Mine was worse than that. After the tap, the code wrote the UserDefaults key `lastVersionPromptedForReview`, and the button's visibility check read that same key. So the button hid itself whether or not a sheet appeared. The automatic prompt shared those keys too, so it could hide the button before anybody tapped it.
+
+The fix (#164, shipped in 10.0.0 on Aug 13, 2026) made two paths that share no keys. The button opens the write-review deep link, which is never throttled.
+
+`https://apps.apple.com/app/id<id>?action=write-review`
+
+The automatic prompt stays on `SKStoreReviewController`, because guideline 5.6.1 requires the system API for in-app prompts.
+
+## A review prompt can die without a crash
+
+Write a test that proves your prompt path gets called, because nothing else tells you when it stops. In September 2026 I deleted the classic remote screen (#236, shipped in 13.1.2 on Sep 25), and that screen had the only call sites of the prompt. There was no crash and no failing test. The counter stopped counting, and new installs were never asked.
+
+The fix (#250) moved the counter to where captures save now, and it shipped in 14.0.1 on Oct 30. That's five weeks of new installs nobody asked, and that's on me.
+
+## Fix what the reviews say
+
+Your 1★ reviews are a bug list somebody wrote for free. Read them like tickets, fix them, and ship.
+
+I keep all 100 reviews since 2013 in SQLite with my reply next to each one (how to pull them is further down), so "which ones are unanswered" is one query. Right now 99 are answered, and the open one is from last week.
+
+| What they wrote | What shipped | When |
 |---|---|---|
-| 🇹🇷 5★ "The countdown clock's sound is audible when the video starts" | `fix timer sound` (#106) | 9 days |
-| 🇮🇹 3★ "it says 2X but actually uses the 5X", and no format choice | lens selection fix + aspect ratio controls (#89–#91) | 9 days |
-| 🇺🇸 3★ "it would be nice if I could connect more than one camera" | Multicam Director, up to 4 iPhones (#203) | 6 months |
-| Six reviews asking for zoom or the other lenses (🇺🇸🇬🇧🇮🇹, 2021 to 2023) | zoom + lens switching (#13) | years, then one PR |
-| 🇬🇧 🇺🇸 "no tap to focus" | Tap to focus (#169) | |
+| 🇹🇷 5★ "The countdown clock's sound is audible when the video starts" | `fix timer sound` (#106) | 9 days later |
+| 🇮🇹 3★ "it says 2X but actually uses the 5X", and no format choice | lens selection fix + aspect ratio controls (#89 to #91) | 9 days later |
+| 🇺🇸 3★ "it would be nice if I could connect more than one camera" | Multicam Director, up to 4 iPhones (#203) | about 6 months later |
+| Six reviews asking for zoom or other lenses (🇺🇸🇬🇧🇮🇹, 2021 to 2023) | zoom + lens switching (#13) | 2025 |
+| "No tap to focus" (🇬🇧 2022, 🇺🇸 2023) | Tap to focus (#169) | 2026 |
 | About ten "can't connect" 1★s, 2020 to 2026 | reconnection rebuilt (#61), then our own QUIC transport, Stormo (#183, #189) | |
 | "No setup instructions", three times | tutorial + local network permission screens (#27, #28) | |
 
-Yes, the zoom row is embarrassing. People asked for it in 2021 and I shipped it in 2025. The reviews kept asking for the same thing for four years, and they were right the whole time.
+Yes, the zoom row is embarrassing. People asked for it from 2021 and it shipped in 2025.
 
-So about that second reply. When you replace your response to a review, Apple emails the reviewer again and invites them to update their rating. That's why I go back to every review a fix touches and tell them which version has it. Somebody who gave you 1★ for a bug that's gone now is somebody you can win back.
+## Replacing a reply notifies the reviewer again
 
-And people do come back. In August a reviewer in the US updated their review on their own: *"Since my last review on this app, which was less than positive, the newest version fixes every issue I initially had."* In November an Italian 5★ said just three words: *"Every problem solved!"*
+When you replace a developer response, Apple notifies the reviewer again and invites them to update their rating. So a shipped fix is a reason to go back to an old review. When a fix ships I reply again on every review it touches, with the version number that has it.
 
-## We asked at the right moment
+Some people do come back. In August 2026 a US reviewer updated on their own and wrote "Since my last review on this app, which was less than positive, the newest version fixes every issue I initially had." In November an Italian 5★ said "Every problem solved!"
 
-Until July we were asking the wrong people. The "Rate on App Store" button only showed up if you had bought something, and that's about 4% of users. Paying doesn't mean you're happy, and Apple's guidelines don't want you picking who gets asked anyway. Everybody else only got the system prompt after ten captures. The fix (#164, shipped in 10.0.0 on Aug 13) made everyone eligible and dropped the bar to five.
+## Then measure if it's working
 
-The rule now is simple. You earn the ask when the app has worked for you. So we count five photos or clips that actually landed in your photo library. Buying something doesn't count, and neither does opening the app ten times.
+Everything above takes weeks to show up, and the number on your App Store page will hide it. That's why I measure the new ratings, not the lifetime one.
 
-Let me show you the details, because they matter more than the number five:
+The example I give people is basic kinematics. The lifetime average on an App Store page is position. It's everything accumulated since launch, so it barely moves, and a good or a bad month disappears inside it.
 
-- The tally only goes up when the save to Photos succeeds, never when you tap the shutter. A failed save counts nothing. A rig with three cameras counts three.
-- The system sheet waits two seconds, so it never covers the shot you just took.
-- We ask four times at most, once per build, and never on top of the welcome screen.
-- There are two different doors. The unsolicited ask uses Apple's system prompt (`SKStoreReviewController`), which iOS throttles to about three a year and which is allowed to show nothing at all. That's fine when nobody asked, but it's wrong for a button. So the "Rate on App Store" button in Settings opens the App Store's write-review page directly (`?action=write-review` on the app URL), and that one is never throttled.
+The average of the new ratings is velocity, and that's the number to steer by. Position moves toward velocity, slowly. My US position went from 3.51★ to 3.69★ in four months, while the 9 ratings that moved it averaged 4.99★.[^1]
 
-Then in September I broke it. We deleted the classic remote screen (#236, shipped in 13.1.2), and it turned out that screen held the only calls into the review prompt. Nothing crashed and no test failed. The tally just stopped counting, and every new install stopped getting asked. The fix (#250) moved the tally to where captures actually get saved now, and it shipped in 14.0.1 on Oct 30. These days I check that the prompt actually fires.
+Apple doesn't show velocity anywhere, but there's a public endpoint that gives you enough to compute it, with no login.
 
-## Written reviews are the loudest slice
+`GET itunes.apple.com/lookup?id=<app>&country=<cc>`
 
-Before July, people who only tapped stars averaged **3.69★**, and people who wrote a review averaged **2.73★**. Same app, same years, a full star apart.
+It returns the lifetime `userRatingCount` and `averageUserRating` for one storefront. Save that per country on a schedule. Count times average is the total number of stars, so subtracting two snapshots gives how many ratings arrived in between and what they averaged. There's no auth, so it works on any app, competitors included.
 
-Mostly the people who write are the ones who got burned. So I read written reviews to find what to fix, and I read the snapshots to see if the fix is working.
+[[chart:periods]]
+
+The first column is my 13 years of history, 184 ratings at 3.28★ worldwide. Every column after it is what arrived between two snapshots, and hovering a column shows the split. The four windows averaged 4.40, 3.68, 3.17 and 4.53.
+
+Yes, one window is below the lifetime average. It holds 6 ratings, so I don't read much into a single column. The averages come back rounded to two decimals, and that's why I merge windows until each one has at least 6 ratings. Taken together, the ratings since July 11 average 4.06★, and the lifetime number went from 3.28★ to 3.41★.
+
+## People who write reviews are a harsher crowd
+
+Star-only ratings and written reviews come from different people, so split them before reading either one. Before July 2026, people who only tapped stars gave Remote Shutter 3.69★ on 106 ratings. People who wrote something gave it 2.73★ on 78. That's the same app in the same years, almost a full star apart.
 
 [[chart:written-yearly]]
 
-Look at the band. Most years have fewer than ten written reviews, so one year's average is mostly noise. The real change happened around 2020. Before that, written reviews averaged about 2.3★, and since then it's about 3.0★.
+Most years have under 10 written reviews, so one year's average is mostly noise. Over longer stretches it does move. Written reviews averaged about 2.3★ from 2013 to 2019 and about 3.0★ from 2020 to 2026.
 
 [[chart:written-share]]
 
-## The receipts
+So I use the two for different jobs. Written reviews tell me what to fix, and the snapshots tell me if the fix is working.
 
-Apple won't give anyone a list of dated star ratings. What you do get is two feeds, and between them it's enough.
+## Get every review into one table
 
-| What we call | What it returns | Auth |
+The App Store Connect API returns every written review an app ever got, with stars, title, body, territory, date and your reply. Follow `links.next` to page through the history. A Sales-role API key is enough to read them and to post replies, so no Admin key has to sit next to a script.
+
+| Call | What it returns | Auth |
 |---|---|---|
 | `GET itunes.apple.com/lookup?id=<app>&country=<cc>` | lifetime rating count and average for one storefront | none, it's public |
-| `GET /v1/apps/<app>/customerReviews?include=response` | every written review (stars, text, territory, date) plus your reply | App Store Connect API key, Sales role |
+| `GET /v1/apps/<id>/customerReviews?sort=-createdDate&include=response` | every written review plus your reply | Sales-role key |
 | `POST /v1/customerReviewResponses` | posts or replaces your reply to a review | same key |
-| `GET /v1/salesReports` | daily downloads and proceeds | same key |
-| `/v1/analyticsReportRequests` → reports → instances → segments | impressions, page views, downloads, sessions, crashes per territory | Admin once to create the request, then Sales reads it |
+| `GET /v1/salesReports` | sales reports | same key |
+| Analytics Reports API | the ongoing analytics reports | Admin once to create the request, then Sales reads it |
 
-For velocity, every time we run the report we snapshot the lookup API across 37 storefronts into one SQLite file. Count times average gives you the total number of stars. Subtract two snapshots and you get how many ratings came in between and what they averaged. It works on any app, competitors too, because the lookup API doesn't need a login.
+Auth is an ES256 JWT with a 20-minute expiry and the audience `appstoreconnect-v1`. If one of your scripts still reads Apple's public customer-reviews RSS feed, check it. That feed died in 2026 and returns empty feeds now.
 
-For reviews, the App Store Connect API signs every request with a short-lived JWT made from an API key. A Sales-role key is enough to read every review and to post replies. We page through the whole history on every run and store our response next to each review, so "which complaints are still unanswered" is one SQL query.
+## Write the machine down
 
-## Orchestrating it with Claude
+Keep all of this in its own private repo, never in the app repo. Mine has about a dozen small Python scripts, one SQLite database and a `CLAUDE.md` where the machine is written down. It says which key reads what, which endpoints are dead and which rows to net out. My favorite rule in it is "answer questions with SQL before writing any new script".
 
-All of this lives in its own private growth repo, never in the app repo. It's a dozen small Python scripts, one SQLite file, and a `CLAUDE.md` that writes the whole machine down: which key can read what, which endpoints are dead, which rows to net out. My favorite rule in there is *answer questions with SQL before writing any new script*.
-
-With that file in place, running the whole thing is one sentence. I typed "pull the latest reviews because the trend is changing." Claude pulled the reviews, took a ratings snapshot, found the 14 new ratings, regenerated the charts, and told me the window average had moved to 4.53★. Then "commit and push everything" puts it in git, and `git log -p reports/` becomes the diary of every week.
-
-Some things stay with me on purpose. I minted the Admin key that Analytics needs, once. And I decide what ships.
+With that file in place, a run is one sentence. I typed "pull the latest reviews because the trend is changing". Claude pulled the reviews, took a ratings snapshot, found 14 new ratings, regenerated the charts and reported 4.53★. Two things stay with me. I minted the Admin key once, and I decide what ships.
 
 ## What I'd do if I were you
 
-- Snapshot the public lookup API for every storefront on a schedule. Two snapshots and you have velocity.
-- Pull every written review with a Sales key, and treat it like a bug tracker.
-- Answer all of them, and reply again with the version number when the fix ships.
-- Only ask for a rating after the app worked: count real results, not taps, launches or purchases.
-- Use the write-review link for buttons and the system prompt for the unsolicited ask, and check that it actually fires.
+1. Ask everybody, but only after the app did its job for them. Count verified results.
+2. Point your rate button at the write-review link, and keep the system prompt for the automatic ask.
+3. Write a test that proves your prompt still gets called.
+4. Read every review like a ticket, fix it, and reply again with the version number when the fix ships.
+5. Snapshot the lookup API for every storefront and watch the new ratings, not the lifetime number.
 
-If you try the snapshot thing on your own app, I'd love to hear what your velocity looks like. Cheers.
+If you run the snapshots on your own app, what does your velocity look like next to your lifetime number? I would love to see it. Cheers.
 
 [^1]: For the nerds: each column is a finite difference over the snapshot interval, so it's the average velocity over that window, not the instantaneous one. Per-storefront averages come back rounded to two decimals, so a window with only two ratings is mostly rounding. That's why windows merge until they hold six ratings.
