@@ -54,7 +54,7 @@ Let me show you the details, because they matter more than the number five:
 - We ask four times at most, once per build, and never on top of the welcome screen.
 - There are two different doors. The unsolicited ask uses Apple's system prompt (`SKStoreReviewController`), which iOS throttles to about three a year and which is allowed to show nothing at all. That's fine when nobody asked, but it's wrong for a button. So the "Rate on App Store" button in Settings opens the App Store's write-review page directly (`?action=write-review` on the app URL), and that one is never throttled.
 
-Then in September I broke it. We deleted the classic remote screen (#236, shipped in 13.1.2), and it turned out that screen held the only calls into the review prompt. Nothing crashed and no test failed. The tally just stopped counting, and every new install stopped getting asked. The velocity chart caught it before anything else did: Aug 23 to Oct 4 is the low point, 3.17★. The fix (#250) moved the tally to where captures actually get saved now, and it shipped in 14.0.1 on Oct 30. These days I check that the prompt actually fires.
+Then in September I broke it. We deleted the classic remote screen (#236, shipped in 13.1.2), and it turned out that screen held the only calls into the review prompt. Nothing crashed and no test failed. The tally just stopped counting, and every new install stopped getting asked. The fix (#250) moved the tally to where captures actually get saved now, and it shipped in 14.0.1 on Oct 30. These days I check that the prompt actually fires.
 
 ## Written reviews are the loudest slice
 
