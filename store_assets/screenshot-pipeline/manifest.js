@@ -639,11 +639,12 @@ window.MANIFEST = {
     },
 
     // ---- Holiday 2026 product page art (render.mjs PRODUCT_ART = "holiday_") ----
-    // Grandma looks into the lens holding the remote; the viewer stands where
-    // the camera is. Scenes are graded 2K drafts from the growth repo
-    // (reports/holiday-2026: regenerate.sh round3/flash32, grade.json "evening").
-    // The tripod phone stays dark: its holder clamp sits over the glass and a
-    // surface has no occlusion mask.
+    // Grandma looks into the lens holding the remote; the tripod phone in front
+    // films the family with its rear camera, its screen toward the viewer. Both
+    // screens show the same live view (holiday_flash2_camview.jpg; the remote
+    // letterboxes it, as the app does for a landscape camera on a portrait
+    // remote). Scenes are graded 2K edits from the growth repo
+    // (reports/holiday-2026: regenerate.sh flip, grade.json "evening").
     "holiday_header": {
       layout: "landscape",
       // Screenshot slot 1's headline, "Everyone's in the shot. / Including you.",
@@ -651,52 +652,74 @@ window.MANIFEST = {
       headlineKey: "1",
       accentLine: 1,
       overlayCaption: { top: 36, left: 56, size: 66, panel: true },
-      scene: "../ai-scenes/holiday_flash_wide.jpg",
+      scene: "../ai-scenes/holiday_flash2_wide.jpg",
       sceneSize: [2752, 1536],
       sceneWidth: 1,
-      scenePosition: "50% 30%",
+      scenePosition: "50% 50%",
       surfaces: [
         {
-          // Grandma's phone, the remote, live view of the family.
-          quad: [[1074, 656], [1168, 645], [1066, 848], [1160, 848]],
+          // Tripod phone, landscape: the camera.
+          quad: [[348, 992], [918, 988], [350, 1266], [918, 1268]],
+          size: [2572, 1210],
+          bezel: 0,
+          radius: 150,
+          chrome: "camera",
+          img: "../ai-scenes/holiday_flash2_camview.jpg",
+          pos: "50% 50%",
+          scale: 1.0
+        },
+        {
+          // Grandma's phone: the remote.
+          quad: [[1068, 640], [1161, 644], [1063, 840], [1156, 843]],
           size: [1170, 2532],
           bezel: 0,
           radius: 185,
           ui: "assets/ui-monitor-iphone.png",
-          viewfinder: "../ai-scenes/holiday_flash_preview.jpg",
+          viewfinder: "../ai-scenes/holiday_flash2_remoteview.jpg",
           statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         }
       ],
       callouts: [
-        { text: "CAMERA", anchor: [690, 1050], dx: -150, dy: -90 },
-        { text: "REMOTE", anchor: [1090, 700], dx: -260, dy: 60 }
+        { text: "CAMERA", anchor: [350, 1080], dx: -125, dy: -70 },
+        { text: "REMOTE", anchor: [1062, 820], dx: -170, dy: 40 }
       ]
     },
     "holiday_search": {
       layout: "landscape",
-      // Screenshot slot 1's headline, "Everyone's in the shot. / Including you.",
-      // already in every locale, on a frosted panel top-left.
-      headlineKey: "1",
+      // Screenshot slot 0's headline, "One phone is the camera. The other is the
+      // remote.", on one line across the wall above the family: the search card
+      // is where people first meet the app, so it says how it works.
+      headlineKey: "0",
       accentLine: 1,
-      overlayCaption: { top: 30, left: 48, size: 58, panel: true },
-      scene: "../ai-scenes/holiday_flash_32.jpg",
+      overlayCaption: { top: 28, left: 40, size: 50, panel: true, oneLine: true },
+      scene: "../ai-scenes/holiday_flash2_32.jpg",
       sceneSize: [2528, 1696],
       sceneWidth: 1,
       scenePosition: "50% 50%",
       surfaces: [
         {
-          quad: [[984, 720], [1068, 712], [974, 903], [1060, 903]],
+          quad: [[348, 980], [846, 986], [346, 1222], [846, 1232]],
+          size: [2572, 1210],
+          bezel: 0,
+          radius: 150,
+          chrome: "camera",
+          img: "../ai-scenes/holiday_flash2_camview.jpg",
+          pos: "50% 50%",
+          scale: 1.0
+        },
+        {
+          quad: [[982, 710], [1066, 713], [978, 898], [1062, 900]],
           size: [1170, 2532],
           bezel: 0,
           radius: 185,
           ui: "assets/ui-monitor-iphone.png",
-          viewfinder: "../ai-scenes/holiday_flash_preview.jpg",
+          viewfinder: "../ai-scenes/holiday_flash2_remoteview.jpg",
           statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         }
       ],
       callouts: [
-        { text: "CAMERA", anchor: [630, 1095], dx: -150, dy: -90 },
-        { text: "REMOTE", anchor: [1000, 760], dx: -260, dy: 60 }
+        { text: "CAMERA", anchor: [352, 1215], dx: -40, dy: 95 },
+        { text: "REMOTE", anchor: [976, 880], dx: -170, dy: 40 }
       ]
     },
 

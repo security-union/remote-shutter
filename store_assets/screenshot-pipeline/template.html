@@ -214,7 +214,7 @@
   if (!slot.headline) { slot.headline = []; document.querySelector(".caption").style.display = "none"; }
   h1.innerHTML = slot.headline
     .map((line, i) => i === slot.accentLine ? `<span class="accent">${line}</span>` : line)
-    .join("<br>");
+    .join(slot.overlayCaption && slot.overlayCaption.oneLine ? " " : "<br>");
   if (slot.overlayCaption) {
     const o = slot.overlayCaption;
     document.body.classList.add("overlay-caption");
