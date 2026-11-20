@@ -188,6 +188,8 @@
   // under "6" and the grid mockup under "mac5", both already in all locales.
   const baseId = slot.headlineKey || (slotId === "banner" ? "0" : slotId.replace(/i$/, ""));
   if (t.headlines[baseId]) slot.headline = t.headlines[baseId];
+  // `headlineLines` keeps only the first n lines of a translated headline.
+  if (slot.headline && slot.headlineLines) slot.headline = slot.headline.slice(0, slot.headlineLines);
   if (t.sublines && t.sublines[baseId]) slot.subline = t.sublines[baseId];
   const L = (s) => (t.labels && t.labels[s]) || s;
 
@@ -219,6 +221,10 @@
     const o = slot.overlayCaption;
     document.body.classList.add("overlay-caption");
     if (o.panel) document.body.classList.add("oc-panel");
+    // Anchor to the right and/or bottom edge instead of top-left.
+    const cap = document.querySelector(".caption");
+    if (o.right != null) { cap.style.left = "auto"; cap.style.right = `calc(${o.right}px * var(--k))`; cap.style.textAlign = "right"; }
+    if (o.bottom != null) { cap.style.top = "auto"; cap.style.bottom = `calc(${o.bottom}px * var(--k))`; }
     for (const [name, value] of Object.entries({ ocTop: (o.top ?? 70) + "px", ocLeft: (o.left ?? 80) + "px", ocSize: (o.size ?? 84) + "px", ocColor: o.color || "#fff", ocAccent: o.accent || "#F5C76B" })) {
       document.documentElement.style.setProperty(`--${name}`, value);
     }

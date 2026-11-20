@@ -132,9 +132,14 @@ ships: `"holiday_"` renders the `holiday_header` / `holiday_search` slots,
 grandma holding the remote and looking into the lens. Its scenes are graded
 2K drafts made in the growth repo (`reports/holiday-2026`, which keeps the
 prompts and the grade), so they are not in `generate.mjs`. It carries
-screenshot slot 1's headline through `overlayCaption`: the caption floats
-top-left over the scene on a frosted panel (`panel: true`) instead of taking a
-column. Set `PRODUCT_ART` back to `""` after the holidays and re-ship.
+screenshot slot 1's headline through `overlayCaption`: the caption floats over
+the scene on a frosted panel (`panel: true`) instead of taking a column. It
+sits at `top`/`left`, or at `right`/`bottom` when those are set, and
+`oneLine: true` keeps it on one line. Both holiday headlines sit inside
+Apple's safe area, because devices that crop to it would cut text placed
+outside. The search card keeps only the first line (`headlineLines: 1`,
+"Everyone's in the shot."). Set `PRODUCT_ART` back to `""` after the holidays
+and re-ship.
 
 Upload with the `sync_product_page` lane (or the "Sync Product Page Art"
 GitHub workflow). It needs the App Store Connect key env vars and an iOS version

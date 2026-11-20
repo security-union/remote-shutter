@@ -644,14 +644,17 @@ window.MANIFEST = {
     // screens show the same live view (holiday_flash2_camview.jpg; the remote
     // letterboxes it, as the app does for a landscape camera on a portrait
     // remote). Scenes are graded 2K edits from the growth repo
-    // (reports/holiday-2026: regenerate.sh flip, grade.json "evening").
+    // (reports/holiday-2026: regenerate.sh flip; grade.json "evening" for the
+    // header, "evening_spot" for the search card, which darkens the room's edges
+    // so the lit screens lead). Headlines sit inside Apple's safe area; no pills.
     "holiday_header": {
       layout: "landscape",
       // Screenshot slot 1's headline, "Everyone's in the shot. / Including you.",
-      // already in every locale, on a frosted panel top-left.
+      // already in every locale, on a frosted panel in the bottom-right of Apple's
+      // safe area (x 549..1371, y 247..577 CSS px; overlay values are x k = 0.762).
       headlineKey: "1",
       accentLine: 1,
-      overlayCaption: { top: 36, left: 56, size: 66, panel: true },
+      overlayCaption: { right: 735, bottom: 335, size: 46, panel: true },
       scene: "../ai-scenes/holiday_flash2_wide.jpg",
       sceneSize: [2752, 1536],
       sceneWidth: 1,
@@ -679,20 +682,16 @@ window.MANIFEST = {
           statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         }
       ],
-      callouts: [
-        { text: "CAMERA", anchor: [350, 1080], dx: -125, dy: -70 },
-        { text: "REMOTE", anchor: [1062, 820], dx: -170, dy: 40 }
-      ]
+      callouts: []
     },
     "holiday_search": {
       layout: "landscape",
-      // Screenshot slot 0's headline, "One phone is the camera. The other is the
-      // remote.", on one line across the wall above the family: the search card
-      // is where people first meet the app, so it says how it works.
-      headlineKey: "0",
-      accentLine: 1,
-      overlayCaption: { top: 28, left: 40, size: 50, panel: true, oneLine: true },
-      scene: "../ai-scenes/holiday_flash2_32.jpg",
+      // Slot 1's first line, "Everyone's in the shot.", bottom-right of Apple's
+      // safe area (x 418..1502, y 382..898 CSS px), over the family's laps.
+      headlineKey: "1",
+      headlineLines: 1,
+      overlayCaption: { right: 434, bottom: 398, size: 62, panel: true, oneLine: true },
+      scene: "../ai-scenes/holiday_flash2_32_spot.jpg",
       sceneSize: [2528, 1696],
       sceneWidth: 1,
       scenePosition: "50% 50%",
@@ -717,10 +716,7 @@ window.MANIFEST = {
           statusbar: { heightPct: 4.9, font: 42, pad: 60 }
         }
       ],
-      callouts: [
-        { text: "CAMERA", anchor: [352, 1215], dx: -40, dy: 95 },
-        { text: "REMOTE", anchor: [976, 880], dx: -170, dy: 40 }
-      ]
+      callouts: []
     },
 
     // ---- Product page header (21:9) and search results (3:2) ----
