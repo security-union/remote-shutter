@@ -23,6 +23,9 @@ const OUT_DIR = join(here, "..", "ai-scenes");
 // scene can be A/B'd across models without editing this file (the 3.1 line is
 // flash-tier only; there is no 3.1 pro image model).
 const MODEL = process.env.GEMINI_IMAGE_MODEL || "gemini-3-pro-image";
+// 2K suits a phone screenshot; the wide product-page art is 3840+ px across
+// and needs GEMINI_IMAGE_SIZE=4K.
+const IMAGE_SIZE = process.env.GEMINI_IMAGE_SIZE || "2K";
 const KEY = process.env.AI_STUDIO;
 if (!KEY) { console.error("AI_STUDIO env var not set"); process.exit(1); }
 
@@ -266,6 +269,41 @@ watch. Every device screen stays completely black and switched off.`,
 pointed at, as a clean full-frame product photograph: the luxury wristwatch
 standing on its small white plinth against the seamless white studio backdrop,
 softbox-lit. No devices, no people, no tripod in frame.`,
+  },
+  // The wide scene behind the product page header and search results art:
+  // the climbing rig, recomposed to 16:9 in one hop. Kept candidate 3 of 3.
+  // 4K because the header is 3840 px across.
+  "climb_wide_c3.jpg": {
+    from: ["mac4_climb_ipad_v2.jpg"],
+    aspect: "16:9",
+    size: "4K",
+    prompt: `Recompose this exact photograph as a wide cinematic 16:9 frame on a 28mm lens
+at f/4, the camera pulled back and to the side so the same bouldering gym
+opens out horizontally. The same teal and ochre overhanging climbing wall
+fills the centre and right of the frame, and the same climber in the grey tank
+top and black leggings, ponytail swinging, is mid-move in exactly the same
+pose, placed just right of the exact centre of the image at mid height, her
+whole body clearly visible. The same man in the black t-shirt sits on the same
+pale wooden bench in the near foreground, left of centre, seen from behind and
+to the side, looking up at the climber. He holds the same large unbranded
+tablet in LANDSCAPE orientation raised to chest height with both hands
+gripping its left and right bezels, so the tablet sits just left of the exact
+centre of the image at mid height, right beside the climber in the frame: its
+screen faces the viewer almost square on, a pure glossy black switched-off
+glass rectangle with all four corners visible and nothing in front of the
+glass, about one sixth of the frame width. The same four unbranded smartphones
+stay on their same mounts, spread wide across the frame: the phone in the
+ceiling clamp at the upper left showing its pure glossy black switched-off
+screen tilted down toward the wall; the landscape phone on the tall black
+light stand at the far left showing its pure glossy black switched-off screen;
+the phone on the small tripod on the blue crash pads at the lower right
+showing its pure glossy black switched-off screen tilted up at the overhang;
+and the phone in the clamp on the steel column at the far right edge, its
+plain grey back toward the viewer. Same blue crash pads across the floor, same
+bright gym with high clerestory windows and steel beams, same sharp
+photographic texture, saturated colour and deep true blacks. Generous floor
+and ceiling above and below the action so the climber and the tablet sit
+together in the middle band of the image.`,
   },
   "slot1_preview.jpg": {
     from: ["slot1_group_c2.jpg"],
@@ -747,7 +785,7 @@ contains only the climber, her hands, the holds and the wall right behind her.`,
   },
 };
 
-async function callModel(parts, aspectRatio) {
+async function callModel(parts, aspectRatio, imageSize = IMAGE_SIZE) {
   const res = await fetch(
     `https://generativelanguage.googleapis.com/v1beta/models/${MODEL}:generateContent`,
     {
@@ -757,7 +795,7 @@ async function callModel(parts, aspectRatio) {
         contents: [{ parts }],
         generationConfig: {
           responseModalities: ["IMAGE"],
-          imageConfig: { aspectRatio, imageSize: "2K" },
+          imageConfig: { aspectRatio, imageSize },
         },
       }),
     },
@@ -815,7 +853,7 @@ if (process.argv[2] === "derive") {
       inlineData: { mimeType: "image/jpeg", data: readFileSync(join(OUT_DIR, f)).toString("base64") },
     }));
     parts.push({ text: d.prompt });
-    save(join(OUT_DIR, outName), await callModel(parts, d.aspect));
+    save(join(OUT_DIR, outName), await callModel(parts, d.aspect, d.size));
   }
   if (d.crop) {
     const [x0, y0, x1, y1] = d.crop.box;

@@ -30,7 +30,7 @@ and `fastlane/metadata/` to App Store Connect.
 | `translations.js` | **All localized strings** (headlines, sublines, callout labels) for the 15 locales |
 | `template.html` | Renders one slot in headless Chrome: caption + scene + perspective-mapped screens + callouts |
 | `render.mjs` | Drives Chrome over the slot × device matrix (`PLANS`), crops to exact pixels |
-| `ship-locales.sh` | Renders every locale and syncs `fastlane/screenshots/<locale>/` (cleans stale files, keeps Watch captures) |
+| `ship-locales.sh` | Renders every locale and syncs `fastlane/screenshots/<locale>/` (cleans stale files, keeps Watch captures); product page art goes to `fastlane/product_page/<locale>/` |
 | `generate.mjs` | Nano Banana (Gemini) scene generation/editing — needs `AI_STUDIO` env var; only used when creating **new** scenes |
 | `tools.py` | Quad helpers: `detect` (find a screen's corners), `overlay` (draw a quad to verify), `zoom`, `crop`; plus `find-logo`/`strip-logos` (below), `chrome` (chrome overlays, below) and `grid` (multicam wall: composite N camera previews, aspect-fit, under a real window capture's keyed chrome — see `mac2_multicam_grid.png`'s recipe below) |
 | `logo-patches.json` | The brand marks to clone out of a generated scene, and where to take clean pixels from — the `strip-logos` table |
@@ -97,6 +97,68 @@ python3 tools.py grid assets/raw/monitor-mac-multicam.png ../ai-scenes/mac2_mult
 Tiles are aspect-fit (the app's own letterboxing — a portrait camera
 pillarboxes honestly); the chrome is value-keyed off the black capture and
 re-laid on top, same physics as the `chrome` command.
+
+## Product page header and search results
+
+App Store Connect has two art slots under Product Page Information, shown on
+iOS 27 and iPadOS 27: a header above the icon and name, and the image on the
+app's search result. One image per locale each.
+
+```bash
+./ship-locales.sh -p product        # all locales -> fastlane/product_page/<locale>/
+node render.mjs --plans product     # en-US only, into out/
+```
+
+| Slot | File | Size | Apple's art safe area |
+|---|---|---|---|
+| Header (21:9) | `product_page_header_3840x1646.png` | 3840 x 1646 | 1646 x 661 at (1097, 493) |
+| Search results (3:2) | `search_results_3840x2560.png` | 3840 x 2560 | 2168 x 1030 at (836, 765) |
+
+Both are the `header` and `search` slots in `manifest.js`: two crops of one 16:9
+scene (`climb_wide_c3.jpg`, the climbing rig recomposed wide, a 4K recipe in
+`generate.mjs`) with no caption band, because the store draws the name and
+subtitle beside the image. Apple crops the art per device and only promises the
+safe area, so the director's iPad and the climber sit side by side at the
+centre and the camera phones are the surrounding art. The header keeps the top
+of the scene and drops the floor tripod, which is why the pills say CAMERA and
+not CAMERA 1..4. Check the crops with the Preview button in App Store Connect
+after uploading.
+
+The files are opaque RGB on purpose: Apple rejects an alpha channel.
+
+`PRODUCT_ART` at the top of the product plan in `render.mjs` picks which pair
+ships: `"holiday_"` renders the `holiday_header` / `holiday_search` slots,
+`""` the climbing art above. The holiday pair is the family on the sofa with
+grandma holding the remote and looking into the lens. Its scenes are graded
+2K drafts made in the growth repo (`reports/holiday-2026`, which keeps the
+prompts and the grade), so they are not in `generate.mjs`. It carries
+screenshot slot 1's headline through `overlayCaption`: the caption floats over
+the scene on a frosted panel (`panel: true`) instead of taking a column. It
+sits at `top`/`left`, or at `right`/`bottom` when those are set, and
+`oneLine: true` keeps it on one line. Both holiday headlines sit inside
+Apple's safe area, because devices that crop to it would cut text placed
+outside. The search card keeps only the first line (`headlineLines: 1`,
+"Everyone's in the shot."). Set `PRODUCT_ART` back to `""` after the holidays
+and re-ship.
+
+Upload with the `sync_product_page` lane (or the "Sync Product Page Art"
+GitHub workflow). It needs the App Store Connect key env vars and an iOS version
+in Prepare for Submission:
+
+```bash
+bundle exec fastlane ios sync_product_page locales:en-US   # one locale first
+bundle exec fastlane ios sync_product_page                 # all of them
+bundle exec fastlane ios sync_product_page overwrite:true  # replace what is there
+```
+
+en-GB and es-ES get the en-US and es-MX files. Without `overwrite:true` the run
+stops before uploading if a locale already has art, because Apple can only
+replace a placement by deleting it. Every run uploads fresh copies to the Asset
+Library; old ones stay there.
+
+No released fastlane can do this. The Gemfile pins fastlane to the commit of
+PR #30442 (2.241.0 plus deliver's `creative_assets` option) on its author's
+fork. Move back to a released version once that PR ships.
 
 ## Updating translations
 

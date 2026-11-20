@@ -1,0 +1,42 @@
+name: Sync Product Page Art
+
+on:
+  workflow_dispatch:
+    inputs:
+      locales:
+        description: "Comma-separated locales (empty = all)"
+        required: false
+        default: ""
+      overwrite:
+        description: "Replace art that is already placed (deletes the old placement)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+jobs:
+  sync:
+    name: Upload header + search results art to App Store Connect
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          lfs: true
+
+      - uses: ruby/setup-ruby@v1
+        with:
+          ruby-version: "3.4"
+          bundler-cache: true
+
+      - name: Sync
+        run: |
+          ARGS="overwrite:$OVERWRITE"
+          if [ -n "$LOCALES" ]; then ARGS="$ARGS locales:$LOCALES"; fi
+          bundle exec fastlane ios sync_product_page $ARGS
+        env:
+          LOCALES: ${{ inputs.locales }}
+          OVERWRITE: ${{ inputs.overwrite }}
+          ASC_KEY_ID: ${{ secrets.ASC_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.ASC_ISSUER_ID }}
+          ASC_KEY_CONTENT: ${{ secrets.ASC_KEY_CONTENT }}

@@ -4,7 +4,7 @@
 # strings come from the static translations.js table, no AI/API calls.
 #
 # Usage: ./ship-locales.sh [-p platforms] [locale ...]
-#   -p platforms  comma-separated subset to regenerate: iphone,ipad,mac,banner
+#   -p platforms  comma-separated subset to regenerate: iphone,ipad,mac,banner,product
 #                 (default: all). Only the selected platforms' files are
 #                 replaced in fastlane/screenshots/<locale>/.
 #   locale ...    locales to render (default: all 10).
@@ -19,12 +19,15 @@ FASTLANE="$(cd ../../fastlane/screenshots && pwd)"
 # screenshots_path to ONE platform, and APP_DESKTOP display types are invalid
 # on the iOS version (and iPhone/iPad types on macOS).
 FASTLANE_MAC="$(cd ../../fastlane && pwd)/screenshots_mac"
+# Product page header + search results art. Its own tree for the same reason:
+# deliver would try to upload anything it finds under screenshots/ as a screenshot.
+FASTLANE_PRODUCT="$(cd ../../fastlane && pwd)/product_page"
 
 PLATFORMS=""
 while getopts "p:" opt; do
   case $opt in
     p) PLATFORMS="$OPTARG" ;;
-    *) echo "usage: $0 [-p iphone,ipad,mac,banner] [locale ...]" >&2; exit 1 ;;
+    *) echo "usage: $0 [-p iphone,ipad,mac,banner,product] [locale ...]" >&2; exit 1 ;;
   esac
 done
 shift $((OPTIND - 1))
@@ -38,7 +41,7 @@ fi
 patterns_for() {
   local plats="$1" out=()
   if [ -z "$plats" ]; then
-    out=("*_APP_IPHONE_*.png" "*_APP_IPAD_*.png" "*_APP_DESKTOP_*.png")
+    out=("*_APP_IPHONE_*.png" "*_APP_IPAD_*.png" "*_APP_DESKTOP_*.png" "product_page_header_*.png" "search_results_*.png")
   else
     IFS=',' read -ra PS <<< "$plats"
     for p in "${PS[@]}"; do
@@ -46,6 +49,7 @@ patterns_for() {
         iphone)      out+=("*_APP_IPHONE_*.png") ;;
         ipad)        out+=("*_APP_IPAD_*.png") ;;
         mac|desktop) out+=("*_APP_DESKTOP_*.png") ;;
+        product)     out+=("product_page_header_*.png" "search_results_*.png") ;;
         banner)      ;; # event card is uploaded manually, not a fastlane asset
         *) echo "unknown platform: $p" >&2; exit 1 ;;
       esac
@@ -66,11 +70,12 @@ for L in "${LOCALES[@]}"; do
   for pat in "${PATTERNS[@]}"; do
     DEST="$FASTLANE/$L"
     [ "$pat" = "*_APP_DESKTOP_*.png" ] && DEST="$FASTLANE_MAC/$L"
+    case "$pat" in product_page_header_*|search_results_*) DEST="$FASTLANE_PRODUCT/$L" ;; esac
     mkdir -p "$DEST"
     find "$DEST" -maxdepth 1 -name "$pat" -delete
     find "$SRC" -maxdepth 1 -name "$pat" -exec cp {} "$DEST/" \;
     N=$(find "$SRC" -maxdepth 1 -name "$pat" | wc -l | tr -d ' ')
     SHIPPED=$((SHIPPED + N))
   done
-  echo "shipped $SHIPPED files -> fastlane/screenshots[_mac]/$L/"
+  echo "shipped $SHIPPED files -> fastlane/{screenshots,screenshots_mac,product_page}/$L/"
 done

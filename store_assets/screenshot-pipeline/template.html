@@ -43,6 +43,31 @@
   body.landscape .caption h1 { font-size: calc(92px * var(--k) * var(--hScale, 1)); }
   body.landscape .scene { top: 0; left: var(--capW, 44%); border-radius: 0; }
 
+  /* Overlay caption (product page art): the headline floats over the scene's
+     top-left instead of taking a column, light text on a dark part of the scene. */
+  body.overlay-caption .caption {
+    top: calc(var(--ocTop) * var(--k)); left: calc(var(--ocLeft) * var(--k)); right: auto; bottom: auto;
+    width: auto; height: auto; padding: 0; display: block; text-align: left;
+  }
+  body.overlay-caption .caption h1 {
+    font-size: calc(var(--ocSize) * var(--k)); color: var(--ocColor);
+    text-shadow: 0 calc(2px * var(--k)) calc(18px * var(--k)) rgba(0, 0, 0, .55);
+  }
+  body.overlay-caption .caption h1 .accent { color: var(--ocAccent); }
+  /* Frosted panel behind the overlay headline, after Apple's "regular" glass
+     material: blur and darken what's behind the text, rounded, hairline edge. */
+  body.overlay-caption.oc-panel .caption {
+    padding: calc(30px * var(--k)) calc(42px * var(--k)) calc(34px * var(--k));
+    border-radius: calc(36px * var(--k));
+    background: rgba(18, 18, 22, 0.42);
+    -webkit-backdrop-filter: blur(calc(28px * var(--k))) saturate(1.5);
+    backdrop-filter: blur(calc(28px * var(--k))) saturate(1.5);
+    border: calc(1.5px * var(--k)) solid rgba(255, 255, 255, 0.16);
+    box-shadow: 0 calc(10px * var(--k)) calc(40px * var(--k)) rgba(0, 0, 0, 0.35);
+  }
+  body.overlay-caption.oc-panel .caption h1 { text-shadow: none; }
+  body.overlay-caption .scene { left: 0; }
+
   /* ---- Scene ---- */
   .scene {
     position: absolute; top: var(--capH); left: 0; right: 0; bottom: 0;
@@ -163,6 +188,8 @@
   // under "6" and the grid mockup under "mac5", both already in all locales.
   const baseId = slot.headlineKey || (slotId === "banner" ? "0" : slotId.replace(/i$/, ""));
   if (t.headlines[baseId]) slot.headline = t.headlines[baseId];
+  // `headlineLines` keeps only the first n lines of a translated headline.
+  if (slot.headline && slot.headlineLines) slot.headline = slot.headline.slice(0, slot.headlineLines);
   if (t.sublines && t.sublines[baseId]) slot.subline = t.sublines[baseId];
   const L = (s) => (t.labels && t.labels[s]) || s;
 
@@ -184,10 +211,25 @@
   document.documentElement.style.setProperty("--capH", capH + "px");
 
   const h1 = document.getElementById("headline");
+  // Product-page art (header, search results) without a headline is the scene
+  // alone: the store draws the app's name and subtitle next to it.
+  if (!slot.headline) { slot.headline = []; document.querySelector(".caption").style.display = "none"; }
   h1.innerHTML = slot.headline
     .map((line, i) => i === slot.accentLine ? `<span class="accent">${line}</span>` : line)
-    .join("<br>");
-  if (slot.subline) {
+    .join(slot.overlayCaption && slot.overlayCaption.oneLine ? " " : "<br>");
+  if (slot.overlayCaption) {
+    const o = slot.overlayCaption;
+    document.body.classList.add("overlay-caption");
+    if (o.panel) document.body.classList.add("oc-panel");
+    // Anchor to the right and/or bottom edge instead of top-left.
+    const cap = document.querySelector(".caption");
+    if (o.right != null) { cap.style.left = "auto"; cap.style.right = `calc(${o.right}px * var(--k))`; cap.style.textAlign = "right"; }
+    if (o.bottom != null) { cap.style.top = "auto"; cap.style.bottom = `calc(${o.bottom}px * var(--k))`; }
+    for (const [name, value] of Object.entries({ ocTop: (o.top ?? 70) + "px", ocLeft: (o.left ?? 80) + "px", ocSize: (o.size ?? 84) + "px", ocColor: o.color || "#fff", ocAccent: o.accent || "#F5C76B" })) {
+      document.documentElement.style.setProperty(`--${name}`, value);
+    }
+  }
+  if (slot.subline && !slot.overlayCaption) {
     h1.insertAdjacentHTML("afterend", `<div class="subline">${slot.subline}</div>`);
     h1.parentElement.style.flexDirection = "column";
   }

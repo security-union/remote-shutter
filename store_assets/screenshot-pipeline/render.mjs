@@ -37,7 +37,7 @@ const args = process.argv.slice(2);
 const locIdx = args.indexOf("--locale");
 const LOCALE = locIdx >= 0 ? args.splice(locIdx, 2)[1] : "en-US";
 const plansIdx = args.indexOf("--plans");
-const PLAN_ALIAS = { iphone: "APP_IPHONE", ipad: "APP_IPAD", mac: "APP_DESKTOP", desktop: "APP_DESKTOP", banner: "banner" };
+const PLAN_ALIAS = { iphone: "APP_IPHONE", ipad: "APP_IPAD", mac: "APP_DESKTOP", desktop: "APP_DESKTOP", banner: "banner", product: "product" };
 const PLAN_FILTER = plansIdx >= 0
   ? args.splice(plansIdx, 2)[1].split(",").map((p) => PLAN_ALIAS[p.trim().toLowerCase()] || p.trim())
   : null;
@@ -56,6 +56,15 @@ if (planOn("banner")) RENDERS.push({ slot: "banner", width: 1920, height: 1080, 
 // --headless=new, shrinking the viewport. Pad the window and crop afterwards;
 // the template gets exact canvas dims via ?w=&h= so layout never depends on
 // the viewport.
+// Product page header (21:9) and search results (3:2): one image per locale
+// each, uploaded under Product Page Information. No alpha allowed.
+// Which art ships: "holiday_" for the holiday slots, "" for the climbing art.
+const PRODUCT_ART = "holiday_";
+if (planOn("product")) {
+  RENDERS.push({ slot: `${PRODUCT_ART}header`, width: 1920, height: 823, dsf: 2, opaque: true, out: `${OUT}product_page_header_3840x1646.png` });
+  RENDERS.push({ slot: `${PRODUCT_ART}search`, width: 1920, height: 1280, dsf: 2, opaque: true, out: `${OUT}search_results_3840x2560.png` });
+}
+
 const PAD = 120;
 
 const only = args;
@@ -78,7 +87,9 @@ for (const r of RENDERS) {
   execFileSync("python3", ["-c", `
 from PIL import Image
 im = Image.open(${JSON.stringify(outPath)})
-im.crop((0, 0, ${r.width * dsf}, ${r.height * dsf})).save(${JSON.stringify(outPath)})
+im = im.crop((0, 0, ${r.width * dsf}, ${r.height * dsf}))
+if ${r.opaque ? "True" : "False"}: im = im.convert("RGB")
+im.save(${JSON.stringify(outPath)})
 `]);
   console.log(`rendered slot ${r.slot} -> ${r.out} (${r.width * dsf}x${r.height * dsf})`);
 }
