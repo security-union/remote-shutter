@@ -40,6 +40,7 @@ window.I18N = {
       "mac5": ["4 kameraer forbundet.", "Én synkron udløser."]
     },
     labels: {
+      "INCLUDING YOU": "OGSÅ DIG",
       "SYNCED SHUTTER": "SYNKRON UDLØSER", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "FJERNBETJENING",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM & LINSE", "FLASH & TORCH": "BLITZ & LYS",
@@ -64,6 +65,7 @@ window.I18N = {
       "mac5": ["4 Kameras verbunden.", "Ein synchroner Auslöser."]
     },
     labels: {
+      "INCLUDING YOU": "AUCH DU",
       "SYNCED SHUTTER": "SYNCHRONER AUSLÖSER", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "FERNBEDIENUNG",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM & OBJEKTIV", "FLASH & TORCH": "BLITZ & LICHT",
@@ -88,6 +90,7 @@ window.I18N = {
       "mac5": ["4 cámaras conectadas.", "Un obturador sincronizado."]
     },
     labels: {
+      "INCLUDING YOU": "TÚ TAMBIÉN",
       "SYNCED SHUTTER": "OBTURADOR SINCRONIZADO", "CAMERA 1": "CÁMARA 1", "CAMERA 2": "CÁMARA 2", "CAMERA 3": "CÁMARA 3", "CAMERA 4": "CÁMARA 4", "CAMERA": "CÁMARA", "REMOTE": "CONTROL",
       "PHOTO & VIDEO": "FOTO Y VIDEO", "TIMER": "TEMPORIZADOR",
       "ZOOM & LENS": "ZOOM Y LENTE", "FLASH & TORCH": "FLASH Y LINTERNA",
@@ -112,6 +115,7 @@ window.I18N = {
       "mac5": ["4 caméras connectées.", "Un déclencheur synchronisé."]
     },
     labels: {
+      "INCLUDING YOU": "VOUS AUSSI",
       "SYNCED SHUTTER": "DÉCLENCHEUR SYNCHRONISÉ", "CAMERA 1": "CAMÉRA 1", "CAMERA 2": "CAMÉRA 2", "CAMERA 3": "CAMÉRA 3", "CAMERA 4": "CAMÉRA 4", "CAMERA": "CAMÉRA", "REMOTE": "TÉLÉCOMMANDE",
       "PHOTO & VIDEO": "PHOTO & VIDÉO", "TIMER": "RETARDATEUR",
       "ZOOM & LENS": "ZOOM & OBJECTIF", "FLASH & TORCH": "FLASH & TORCHE",
@@ -136,6 +140,7 @@ window.I18N = {
       "mac5": ["4 fotocamere collegate.", "Uno scatto sincronizzato."]
     },
     labels: {
+      "INCLUDING YOU": "ANCHE TU",
       "SYNCED SHUTTER": "SCATTO SINCRONIZZATO", "CAMERA 1": "FOTOCAMERA 1", "CAMERA 2": "FOTOCAMERA 2", "CAMERA 3": "FOTOCAMERA 3", "CAMERA 4": "FOTOCAMERA 4", "CAMERA": "FOTOCAMERA", "REMOTE": "TELECOMANDO",
       "PHOTO & VIDEO": "FOTO E VIDEO", "TIMER": "TIMER",
       "ZOOM & LENS": "ZOOM E OBIETTIVO", "FLASH & TORCH": "FLASH E TORCIA",
@@ -160,6 +165,7 @@ window.I18N = {
       "mac5": ["4台のカメラを接続。", "シャッターは同期。"]
     },
     labels: {
+      "INCLUDING YOU": "あなたも一緒に",
       "SYNCED SHUTTER": "同期シャッター", "CAMERA 1": "カメラ 1", "CAMERA 2": "カメラ 2", "CAMERA 3": "カメラ 3", "CAMERA 4": "カメラ 4", "CAMERA": "カメラ", "REMOTE": "リモコン",
       "PHOTO & VIDEO": "写真＆ビデオ", "TIMER": "タイマー",
       "ZOOM & LENS": "ズーム＆レンズ", "FLASH & TORCH": "フラッシュ＆ライト",
@@ -184,6 +190,7 @@ window.I18N = {
       "mac5": ["카메라 4대 연결됨.", "하나의 동기화 셔터."]
     },
     labels: {
+      "INCLUDING YOU": "당신도 함께",
       "SYNCED SHUTTER": "동기화 셔터", "CAMERA 1": "카메라 1", "CAMERA 2": "카메라 2", "CAMERA 3": "카메라 3", "CAMERA 4": "카메라 4", "CAMERA": "카메라", "REMOTE": "리모컨",
       "PHOTO & VIDEO": "사진·비디오", "TIMER": "타이머",
       "ZOOM & LENS": "줌·렌즈", "FLASH & TORCH": "플래시·손전등",
@@ -208,6 +215,7 @@ window.I18N = {
       "mac5": ["4 câmeras conectadas.", "Um obturador sincronizado."]
     },
     labels: {
+      "INCLUDING YOU": "INCLUINDO VOCÊ",
       "SYNCED SHUTTER": "OBTURADOR SINCRONIZADO", "CAMERA 1": "CÂMERA 1", "CAMERA 2": "CÂMERA 2", "CAMERA 3": "CÂMERA 3", "CAMERA 4": "CÂMERA 4", "CAMERA": "CÂMERA", "REMOTE": "CONTROLE",
       "PHOTO & VIDEO": "FOTO E VÍDEO", "TIMER": "TEMPORIZADOR",
       "ZOOM & LENS": "ZOOM E LENTE", "FLASH & TORCH": "FLASH E LANTERNA",
@@ -229,6 +237,7 @@ window.I18N = {
       "mac1": ["尽收眼底。", "尽在掌控。"]
     },
     labels: {
+      "INCLUDING YOU": "包括你",
       "CAMERA 1": "相机 1", "CAMERA 2": "相机 2", "CAMERA 3": "相机 3", "CAMERA 4": "相机 4", "CAMERA": "相机", "REMOTE": "遥控器",
       "PHOTO & VIDEO": "照片和视频", "TIMER": "定时器",
       "ZOOM & LENS": "变焦和镜头", "FLASH & TORCH": "闪光灯和手电筒",
@@ -254,6 +263,7 @@ window.I18N = {
       "mac3": ["बड़ी स्क्रीन से", "शॉट डायरेक्ट करें।"]
     },
     labels: {
+      "INCLUDING YOU": "आप भी",
       "SYNCED SHUTTER": "सिंक शटर", "CAMERA 1": "कैमरा 1", "CAMERA 2": "कैमरा 2", "CAMERA 3": "कैमरा 3", "CAMERA 4": "कैमरा 4", "CAMERA": "कैमरा", "REMOTE": "रिमोट", "PRO CAMERA": "प्रो कैमरा",
       "PHOTO & VIDEO": "फ़ोटो और वीडियो", "TIMER": "टाइमर",
       "ZOOM & LENS": "ज़ूम और लेंस", "FLASH & TORCH": "फ़्लैश और टॉर्च",
@@ -278,6 +288,7 @@ window.I18N = {
       "mac3": ["Đạo diễn khung hình", "từ màn hình lớn."]
     },
     labels: {
+      "INCLUDING YOU": "KỂ CẢ BẠN",
       "SYNCED SHUTTER": "MÀN TRẬP ĐỒNG BỘ", "CAMERA 1": "MÁY ẢNH 1", "CAMERA 2": "MÁY ẢNH 2", "CAMERA 3": "MÁY ẢNH 3", "CAMERA 4": "MÁY ẢNH 4", "CAMERA": "MÁY ẢNH", "REMOTE": "ĐIỀU KHIỂN", "PRO CAMERA": "MÁY ẢNH PRO",
       "PHOTO & VIDEO": "ẢNH & VIDEO", "TIMER": "HẸN GIỜ",
       "ZOOM & LENS": "THU PHÓNG & ỐNG KÍNH", "FLASH & TORCH": "ĐÈN FLASH & ĐÈN PIN",
@@ -302,6 +313,7 @@ window.I18N = {
       "mac3": ["Arahkan penggambaran", "dari skrin besar."]
     },
     labels: {
+      "INCLUDING YOU": "TERMASUK ANDA",
       "SYNCED SHUTTER": "PENGATUP SEGERAK", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "KAWALAN JAUH", "PRO CAMERA": "KAMERA PRO",
       "PHOTO & VIDEO": "FOTO & VIDEO", "TIMER": "PEMASA",
       "ZOOM & LENS": "ZUM & KANTA", "FLASH & TORCH": "DENYAR & SULUH",
@@ -326,6 +338,7 @@ window.I18N = {
       "mac3": ["Çekimi büyük ekrandan", "yönetin."]
     },
     labels: {
+      "INCLUDING YOU": "SEN DE DAHİL",
       "SYNCED SHUTTER": "SENKRON DEKLANŞÖR", "CAMERA 1": "KAMERA 1", "CAMERA 2": "KAMERA 2", "CAMERA 3": "KAMERA 3", "CAMERA 4": "KAMERA 4", "CAMERA": "KAMERA", "REMOTE": "KUMANDA", "PRO CAMERA": "PRO KAMERA",
       "PHOTO & VIDEO": "FOTOĞRAF VE VİDEO", "TIMER": "ZAMANLAYICI",
       "ZOOM & LENS": "ZOOM VE OBJEKTİF", "FLASH & TORCH": "FLAŞ VE EL FENERİ",
@@ -350,6 +363,7 @@ window.I18N = {
       "mac3": ["Управляйте съёмкой", "с большого экрана."]
     },
     labels: {
+      "INCLUDING YOU": "И ВЫ ТОЖЕ",
       "SYNCED SHUTTER": "СИНХРОННЫЙ ЗАТВОР", "CAMERA 1": "КАМЕРА 1", "CAMERA 2": "КАМЕРА 2", "CAMERA 3": "КАМЕРА 3", "CAMERA 4": "КАМЕРА 4", "CAMERA": "КАМЕРА", "REMOTE": "ПУЛЬТ", "PRO CAMERA": "ПРОФ. КАМЕРА",
       "PHOTO & VIDEO": "ФОТО И ВИДЕО", "TIMER": "ТАЙМЕР",
       "ZOOM & LENS": "ЗУМ И ОБЪЕКТИВ", "FLASH & TORCH": "ВСПЫШКА И ФОНАРИК",

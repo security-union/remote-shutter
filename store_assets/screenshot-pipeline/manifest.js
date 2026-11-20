@@ -636,6 +636,160 @@ window.MANIFEST = {
         { text: "CAMERA", anchor: [183, 1085], dx: 30, dy: -130 },
         { text: "REMOTE", anchor: [900, 880], dx: 0, dy: -120 }
       ]
+    },
+
+    // ---- Holiday 2026 product page art (render.mjs PRODUCT_ART = "holiday_") ----
+    // Grandma looks into the lens holding the remote; the viewer stands where
+    // the camera is. Scenes are graded 2K drafts from the growth repo
+    // (reports/holiday-2026: regenerate.sh round3/flash32, grade.json "evening").
+    // The tripod phone stays dark: its holder clamp sits over the glass and a
+    // surface has no occlusion mask.
+    "holiday_header": {
+      layout: "landscape",
+      // Screenshot slot 1's headline, "Everyone's in the shot. / Including you.",
+      // already in every locale, on a frosted panel top-left.
+      headlineKey: "1",
+      accentLine: 1,
+      overlayCaption: { top: 36, left: 56, size: 66, panel: true },
+      scene: "../ai-scenes/holiday_flash_wide.jpg",
+      sceneSize: [2752, 1536],
+      sceneWidth: 1,
+      scenePosition: "50% 30%",
+      surfaces: [
+        {
+          // Grandma's phone, the remote, live view of the family.
+          quad: [[1074, 656], [1168, 645], [1066, 848], [1160, 848]],
+          size: [1170, 2532],
+          bezel: 0,
+          radius: 185,
+          ui: "assets/ui-monitor-iphone.png",
+          viewfinder: "../ai-scenes/holiday_flash_preview.jpg",
+          statusbar: { heightPct: 4.9, font: 42, pad: 60 }
+        }
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [690, 1050], dx: -150, dy: -90 },
+        { text: "REMOTE", anchor: [1090, 700], dx: -260, dy: 60 }
+      ]
+    },
+    "holiday_search": {
+      layout: "landscape",
+      // Screenshot slot 1's headline, "Everyone's in the shot. / Including you.",
+      // already in every locale, on a frosted panel top-left.
+      headlineKey: "1",
+      accentLine: 1,
+      overlayCaption: { top: 30, left: 48, size: 58, panel: true },
+      scene: "../ai-scenes/holiday_flash_32.jpg",
+      sceneSize: [2528, 1696],
+      sceneWidth: 1,
+      scenePosition: "50% 50%",
+      surfaces: [
+        {
+          quad: [[984, 720], [1068, 712], [974, 903], [1060, 903]],
+          size: [1170, 2532],
+          bezel: 0,
+          radius: 185,
+          ui: "assets/ui-monitor-iphone.png",
+          viewfinder: "../ai-scenes/holiday_flash_preview.jpg",
+          statusbar: { heightPct: 4.9, font: 42, pad: 60 }
+        }
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [630, 1095], dx: -150, dy: -90 },
+        { text: "REMOTE", anchor: [1000, 760], dx: -260, dy: 60 }
+      ]
+    },
+
+    // ---- Product page header (21:9) and search results (3:2) ----
+    // No caption: the scene is the whole image. Apple crops these per device
+    // and only promises the middle (header: 1646x661 of 3840x1646; search:
+    // 2168x1030 of 3840x2560), so the iPad and the climber sit side by side at
+    // the centre and the cameras are the surrounding art. Both are crops of one
+    // 16:9 scene. The header keeps the top 2359 rows, which drops the floor
+    // tripod; the pills say CAMERA rather than CAMERA 1..4 so neither crop
+    // shows a gap in the numbering.
+    "header": {
+      layout: "landscape",
+      scene: "../ai-scenes/climb_wide_c3.jpg",
+      sceneSize: [5504, 3072],
+      sceneWidth: 1,
+      scenePosition: "50% 0%",
+      surfaces: [
+        {
+          // The director's iPad: the real 4-up grid.
+          // Inset from the flood-filled black: glass and bezel are both black
+          // when the screen is off, and the UI must stop at the glass.
+          quad: [[1775, 1244], [2356, 1201], [1753, 1697], [2358, 1665]],
+          size: [2360, 1640],
+          bezel: 0,
+          radius: 40,
+          ui: "assets/raw/monitor-ipad-multicam-climb.png"
+        },
+        {
+          quad: [[467, 778], [793, 735], [451, 955], [804, 916]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 60,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[4010, 2368], [4180, 2368], [4030, 2692], [4190, 2692]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 60,
+          ui: "assets/raw/camera-standby-portrait.png"
+        }
+        // The ceiling phone stays dark: its clamp crosses the glass and a
+        // surface has no occlusion mask.
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [1665, 350], dx: 220, dy: 50 },
+        { text: "CAMERA", anchor: [630, 730], dx: 130, dy: -110 },
+        { text: "CAMERA", anchor: [4670, 635], dx: -60, dy: -120 },
+        { text: "REMOTE", anchor: [2060, 1195], dx: -30, dy: -130 }
+      ]
+    },
+    "search": {
+      layout: "landscape",
+      scene: "../ai-scenes/climb_wide_c3.jpg",
+      sceneSize: [5504, 3072],
+      sceneWidth: 1,
+      scenePosition: "37% 50%",
+      surfaces: [
+        {
+          // The director's iPad: the real 4-up grid.
+          // Inset from the flood-filled black: glass and bezel are both black
+          // when the screen is off, and the UI must stop at the glass.
+          quad: [[1775, 1244], [2356, 1201], [1753, 1697], [2358, 1665]],
+          size: [2360, 1640],
+          bezel: 0,
+          radius: 40,
+          ui: "assets/raw/monitor-ipad-multicam-climb.png"
+        },
+        {
+          quad: [[467, 778], [793, 735], [451, 955], [804, 916]],
+          size: [1704, 786],
+          bezel: 0,
+          radius: 60,
+          ui: "assets/raw/camera-standby-landscape.png"
+        },
+        {
+          quad: [[4010, 2368], [4180, 2368], [4030, 2692], [4190, 2692]],
+          size: [786, 1704],
+          bezel: 0,
+          radius: 60,
+          ui: "assets/raw/camera-standby-portrait.png"
+        }
+        // The ceiling phone stays dark: its clamp crosses the glass and a
+        // surface has no occlusion mask.
+      ],
+      callouts: [
+        { text: "CAMERA", anchor: [1665, 350], dx: 220, dy: 50 },
+        { text: "CAMERA", anchor: [630, 730], dx: 130, dy: -110 },
+        { text: "CAMERA", anchor: [4670, 635], dx: -60, dy: -120 },
+        { text: "CAMERA", anchor: [4100, 2790], dx: -230, dy: -40 },
+        { text: "REMOTE", anchor: [2060, 1195], dx: -30, dy: -130 }
+      ]
     }
   }
 };

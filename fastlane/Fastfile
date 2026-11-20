@@ -73,6 +73,56 @@ platform :ios do
     IapSync.run(token.text)
   end
 
+  desc "Upload the product page header + search results art from fastlane/product_page/"
+  desc "to the iOS version being prepared (iOS 27 creative assets)."
+  desc "Options:"
+  desc "  locales — comma-separated subset, e.g. locales:en-US,ja (default: all)"
+  desc "  overwrite — when true, replace art already placed on a locale. Apple has"
+  desc "    no update call, so replacing means deleting the old placement first."
+  desc "    Default false: the run stops before uploading if any target is taken."
+  lane :sync_product_page do |options|
+    overwrite = options.fetch(:overwrite, false).to_s.downcase == "true"
+    root = File.expand_path("product_page", __dir__)
+    # en-GB and es-ES are copies of en-US and es-MX everywhere else in the
+    # listing; the same file is uploaded once and placed on both.
+    copies = { "en-GB" => "en-US", "es-ES" => "es-MX" }
+    rendered = Dir.children(root).select { |d| File.directory?(File.join(root, d)) }
+    locales = (rendered + copies.select { |_, from| rendered.include?(from) }.keys).uniq.sort
+    locales &= options[:locales].split(",").map(&:strip) if options[:locales]
+    UI.user_error!("No locales to upload") if locales.empty?
+
+    # DEFAULT_PROFILE is the only placement group Apple's reference data lists
+    # for these two placement types; deliver re-checks it on every run.
+    slots = {
+      "PRODUCT_PAGE_HEADER_ASSET" => "product_page_header_3840x1646.png",
+      "APP_STORE_SEARCH_RESULTS_ASSET" => "search_results_3840x2560.png"
+    }
+    assets = locales.flat_map do |locale|
+      slots.map do |placement_type, file|
+        {
+          locale: locale,
+          path: File.join(root, copies.fetch(locale, locale), file),
+          placement_type: placement_type,
+          placement_group: "DEFAULT_PROFILE"
+        }
+      end
+    end
+
+    load_asc_api_key
+    upload_to_app_store(
+      platform: "ios",
+      skip_binary_upload: true,
+      skip_metadata: true,
+      skip_screenshots: true,
+      creative_assets: assets,
+      overwrite_creative_assets: overwrite,
+      precheck_include_in_app_purchases: false,
+      run_precheck_before_submit: false,
+      force: true,
+      submit_for_review: false
+    )
+  end
+
   desc "Build and upload to App Store Connect"
   desc "Options:"
   desc "  overwrite_screenshots — when true (default) delete ALL screenshots on"
