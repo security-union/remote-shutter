@@ -2,25 +2,19 @@
 title: "Welcome to Remote Shutter"
 date: "2026-03-08"
 author: "Dario Lencina"
-description: "Introducing the Remote Shutter blog — tips, updates, and creative ideas for remote photography."
+description: "Introducing the Remote Shutter blog, with tips, updates, and creative ideas for remote photography."
 ---
 
-Welcome to the official Remote Shutter blog!
+Welcome to the Remote Shutter blog.
 
-We built Remote Shutter to solve a simple problem: taking photos and videos when you can't be behind the camera. Whether it's a group photo, a time-lapse, wildlife photography, or just getting the perfect angle — having a remote control for your iPhone camera changes everything.
+I built Remote Shutter for a simple problem. You want a photo or a video, but you can't be behind the camera. A group photo you're in, a time-lapse, wildlife from a distance, or the angle you can only get from across the room. Give your iPhone camera a remote and all of that gets easy.
 
 ## What is Remote Shutter?
 
-Remote Shutter turns two Apple devices into a wireless camera system. One device becomes the **camera**, and the other becomes your **monitor and remote control** — complete with a live preview of what the camera sees.
+Remote Shutter turns two Apple devices into a wireless camera system. One device is the camera, and the other is your monitor and remote, with a live preview of what the camera sees.
 
-The best part? No internet required. The devices connect directly via peer-to-peer networking, so it works anywhere — indoors, outdoors, even in airplane mode.
+You don't need a router or a Wi-Fi network. The two devices connect directly, peer to peer, so it works anywhere, indoors, outdoors, or off the grid. It does need the Wi-Fi radio switched on, so if you're in airplane mode, turn Wi-Fi back on first.
 
-## What's Coming
+## What's coming
 
-We'll be sharing:
-
-- **Photography tips** for getting the most out of remote shooting
-- **Feature updates** as we ship new capabilities
-- **Use cases** and creative ideas from the community
-
-Stay tuned for more posts!
+I'll be posting photography tips, feature updates as I ship them, and ideas from the community. I'd love to hear what you want to see.
