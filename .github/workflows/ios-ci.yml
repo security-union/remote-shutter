@@ -4,7 +4,15 @@ on:
   push:
     branches: [ main, develop, master ]
   # No branch filter: stacked PRs (feature-branch bases) must get CI too.
+  # `closed` (merge or close) only exists to cancel the PR's in-flight run
+  # through the concurrency group below; every job skips on it.
   pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+# A newer run on the same PR (or branch) cancels the older one.
+concurrency:
+  group: ios-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -13,6 +21,7 @@ permissions:
 jobs:
   build:
     name: Build and Test
+    if: github.event.action != 'closed'
     runs-on: xcode-27
     
     steps:
@@ -133,6 +142,7 @@ jobs:
 
   build-mac-catalyst:
     name: Build Mac Catalyst
+    if: github.event.action != 'closed'
     runs-on: xcode-27
 
     steps:

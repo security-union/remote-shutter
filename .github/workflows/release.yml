@@ -17,6 +17,11 @@ on:
         type: boolean
         default: true
 
+# Dispatching a new release cancels one still in progress.
+concurrency:
+  group: app-store-release
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
