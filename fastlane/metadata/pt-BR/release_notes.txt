@@ -1,1 +1,3 @@
-Corrigido um travamento no iPhone 18 Pro ao mudar a câmera para exposição manual pelo controle.
+• O Multicam agora dirige até 8 câmeras ao mesmo tempo, antes eram 4.
+• O modo de espera agora reduz ao mínimo o brilho da tela da câmera, para os celulares nos tripés não iluminarem o palco.
+• Dê um nome a cada dispositivo em Ajustes. Os arquivos agora começam com o número e o nome da câmera, assim cada ângulo fica junto.

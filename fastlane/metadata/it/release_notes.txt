@@ -1,1 +1,3 @@
-Risolto un arresto anomalo su iPhone 18 Pro quando si passava la fotocamera all'esposizione manuale dal telecomando.
+• Multicam ora dirige fino a 8 fotocamere insieme, prima erano 4.
+• Lo standby ora abbassa al minimo la luminosità dello schermo della fotocamera, così i telefoni sui supporti non illuminano il palco.
+• Dai un nome a ogni dispositivo in Impostazioni. I nomi dei file ora iniziano con numero e nome della fotocamera, così ogni inquadratura resta raggruppata.

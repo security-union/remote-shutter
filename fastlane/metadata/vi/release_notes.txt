@@ -1,1 +1,3 @@
-Đã sửa lỗi ứng dụng bị thoát trên iPhone 18 Pro khi chuyển camera sang phơi sáng thủ công từ điều khiển.
+• Multicam giờ điều khiển tối đa 8 máy ảnh cùng lúc, trước đây là 4.
+• Chế độ chờ giờ giảm độ sáng màn hình máy ảnh xuống mức thấp nhất, để điện thoại trên chân đế không làm sáng sân khấu.
+• Đặt tên cho từng thiết bị trong Cài đặt. Tên tệp giờ bắt đầu bằng số và tên máy ảnh, nên các tệp của mỗi góc quay nằm cạnh nhau.

@@ -1,1 +1,3 @@
-iPhone 18 Pro'da kamera uzaktan kumandadan manuel pozlamaya alındığında oluşan çökme düzeltildi.
+• Multicam artık aynı anda 8 kameraya kadar yönetiyor, önceden 4'tü.
+• Bekleme modu artık kameranın ekran parlaklığını en aza indiriyor; sehpadaki telefonlar sahneyi aydınlatmıyor.
+• Ayarlar'dan her cihaza bir ad verin. Dosya adları artık kameranın numarası ve adıyla başlıyor, böylece her açı bir arada sıralanıyor.
