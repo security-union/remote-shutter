@@ -21,7 +21,7 @@ enum MulticamDisplayMode: Equatable {
 enum MultiCamChrome {
 
     /// Columns for the grid: a near-square arrangement — 2 cameras sit 2-up,
-    /// 3–4 form a 2×2, and it keeps growing by √n for any future larger rig.
+    /// 3–4 form a 2×2, 5–9 a 3×3 (8 cameras leave the last cell empty).
     /// One camera has no grid (the focus view fills the screen).
     static func gridColumnCount(cameraCount: Int) -> Int {
         guard cameraCount > 1 else { return 1 }
@@ -35,6 +35,21 @@ enum MultiCamChrome {
         guard cameraCount > 1 else { return 1 }
         let columns = gridColumnCount(cameraCount: cameraCount)
         return Int(ceil(Double(cameraCount) / Double(columns)))
+    }
+
+    /// Gap between grid cells, and the wall's inset from the screen edge.
+    static let gridSpacing: CGFloat = 4
+    static let gridPadding: CGFloat = 8
+
+    /// One grid cell's size for `cameraCount` cameras in a `viewport`: the
+    /// columns split the width, the rows split the height, so the whole wall
+    /// always fits the window. The grid view sizes its cells from this.
+    static func gridCellSize(cameraCount: Int, in viewport: CGSize) -> CGSize {
+        let columns = CGFloat(gridColumnCount(cameraCount: cameraCount))
+        let rows = CGFloat(gridRowCount(cameraCount: cameraCount))
+        let width = (viewport.width - gridPadding * 2 - gridSpacing * (columns - 1)) / columns
+        let height = (viewport.height - gridPadding * 2 - gridSpacing * (rows - 1)) / rows
+        return CGSize(width: max(1, width), height: max(1, height))
     }
 
     /// The grid toggle is offered only when there is more than one camera —

@@ -550,10 +550,8 @@ struct MulticamView: View {
     /// its video (`LiveFrameView` draws `.fit`).
     private func gridWall(in size: CGSize) -> some View {
         let count = viewModel.lanes.count
-        let rows = MultiCamChrome.gridRowCount(cameraCount: count)
-        let spacing: CGFloat = 4
-        let padding: CGFloat = 8
-        let cellHeight = max(1, (size.height - padding * 2 - spacing * CGFloat(rows - 1)) / CGFloat(rows))
+        let spacing = MultiCamChrome.gridSpacing
+        let cellHeight = MultiCamChrome.gridCellSize(cameraCount: count, in: size).height
         let columns = Array(
             repeating: GridItem(.flexible(), spacing: spacing),
             count: MultiCamChrome.gridColumnCount(cameraCount: count))
@@ -569,7 +567,7 @@ struct MulticamView: View {
                     }
             }
         }
-        .padding(padding)
+        .padding(MultiCamChrome.gridPadding)
     }
 
     private var chromeInput: MonitorChromeInput {
