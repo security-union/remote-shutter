@@ -76,7 +76,7 @@ final class StoreManagerTests: XCTestCase {
     /// The constants every gate and every piece of copy derive from.
     func testCameraCapConstants() {
         XCTAssertEqual(StoreManager.maxFreeCameras, 2)
-        XCTAssertEqual(StoreManager.maxPaidCameras, 4)
+        XCTAssertEqual(StoreManager.maxPaidCameras, 8)
     }
 
     // MARK: - Individual Feature Flags

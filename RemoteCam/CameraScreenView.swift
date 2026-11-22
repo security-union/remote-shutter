@@ -321,6 +321,7 @@ struct CameraStandbyView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture { onRestore() }
+        .modifier(StandbyScreenDimming())
         .accessibilityElement(children: .combine)
         .accessibilityAddTraits(.isButton)
         .accessibilityLabel(Text(NSLocalizedString("Restore preview", comment: "camera standby restore")))
@@ -333,6 +334,38 @@ struct CameraStandbyView: View {
         case .Shorts: return NSLocalizedString("Shorts", comment: "capture mode")
         case .Portrait: return NSLocalizedString("Portrait", comment: "capture mode")
         }
+    }
+}
+
+/// Standby turns the backlight all the way down while it is on screen, so a
+/// camera in a dark room stops glowing. The user's brightness comes back when
+/// standby ends. iOS also restores it whenever the app leaves the foreground,
+/// so the dimming is re-applied each time the app becomes active again.
+/// Mac displays ignore `UIScreen.brightness`, so this is a no-op there.
+private struct StandbyScreenDimming: ViewModifier {
+    @State private var userBrightness: CGFloat?
+
+    func body(content: Content) -> some View {
+        #if targetEnvironment(macCatalyst)
+        content
+        #else
+        content
+            .onAppear(perform: dim)
+            .onDisappear(perform: restore)
+            .onReceive(NotificationCenter.default.publisher(
+                for: UIApplication.didBecomeActiveNotification)) { _ in dim() }
+        #endif
+    }
+
+    private func dim() {
+        if userBrightness == nil { userBrightness = UIScreen.main.brightness }
+        UIScreen.main.brightness = 0
+    }
+
+    private func restore() {
+        guard let brightness = userBrightness else { return }
+        UIScreen.main.brightness = brightness
+        userBrightness = nil
     }
 }
 

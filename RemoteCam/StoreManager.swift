@@ -95,11 +95,9 @@ final class StoreManager: ObservableObject {
     }
 
     /// The multicam camera caps — the single source for every gate and every
-    /// piece of copy that names a number, so they can never disagree. The
-    /// paid cap is held at 4 until larger rigs are validated on hardware
-    /// (N preview streams + N clip uploads per take).
+    /// piece of copy that names a number, so they can never disagree.
     static let maxFreeCameras = 2
-    static let maxPaidCameras = 4
+    static let maxPaidCameras = 8
 
     /// Directing at the paid camera cap: unlocked by full access (Pro
     /// unlocks everything) or the à la carte `max_cameras` pack. The pack
