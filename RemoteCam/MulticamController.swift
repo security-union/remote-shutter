@@ -213,7 +213,7 @@ public actor MulticamController {
     private var takeScheduled = false
     private var takeAnchorMillis: UInt64?
     /// The most recent photo/video capture id, used to name auto-collected
-    /// footage on the director under the shared `RS_<sess>_<cap>_cam<k>` group.
+    /// footage on the director under the shared `cam<k>_<name>_RS_<sess>_<cap>` name.
     private var lastCaptureID: String?
 
     /// Lead time before a synced shutter fires — long enough to cover the
@@ -1693,7 +1693,7 @@ public actor MulticamController {
     /// Test seams.
     func collectionStateForTesting(_ peer: MCPeerID) -> CameraLink.LaneCollectionState? { links[peer]?.collection }
 
-    /// The lane's 1-based index, for the shared RS_ filename group.
+    /// The lane's 1-based index, for the shared capture filename group.
     private func cameraIndex(of peer: MCPeerID) -> Int {
         (order.firstIndex(of: peer) ?? 0) + 1
     }
@@ -1702,7 +1702,7 @@ public actor MulticamController {
         CaptureSyncMetadata(
             sessionID: sessionID, captureID: lastCaptureID ?? UUID().uuidString,
             cameraIndex: cameraIndex(of: peer), anchorMillis: 0,
-            clockOffsetMillis: 0, roundTripMillis: 0)
+            clockOffsetMillis: 0, roundTripMillis: 0, cameraName: peer.displayName)
     }
 
     /// Save a camera's returned still (already EXIF-stamped on the camera) to

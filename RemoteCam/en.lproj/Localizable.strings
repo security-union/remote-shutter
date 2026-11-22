@@ -419,3 +419,7 @@
 "TapGoOnlineStatus" = "TAP “GO ONLINE” TO GET STARTED";
 "TapStartScanningStatus" = "TAP “START SCANNING” TO GET STARTED";
 "Connect to remote" = "Connect to remote";
+
+/* Settings: device name row and footer */
+"Device Name" = "Device Name";
+"device_name_footer" = "How this device appears to other devices. A new name applies the next time it goes online.";

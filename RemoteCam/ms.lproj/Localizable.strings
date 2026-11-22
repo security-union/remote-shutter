@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "KETIK “DALAM TALIAN” UNTUK BERMULA";
 "TapStartScanningStatus" = "KETIK “MULA MENGIMBAS” UNTUK BERMULA";
 "Connect to remote" = "Sambung ke kawalan jauh";
+
+/* Settings: device name row and footer */
+"Device Name" = "Nama Peranti";
+"device_name_footer" = "Nama peranti ini yang dilihat oleh peranti lain. Nama baharu digunakan apabila ia dalam talian semula.";

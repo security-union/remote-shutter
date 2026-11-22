@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "शुरू करने के लिए “ऑनलाइन हों” टैप करें";
 "TapStartScanningStatus" = "शुरू करने के लिए “स्कैन करना शुरू करें” टैप करें";
 "Connect to remote" = "रिमोट से कनेक्ट करें";
+
+/* Settings: device name row and footer */
+"Device Name" = "डिवाइस का नाम";
+"device_name_footer" = "दूसरे डिवाइस इस डिवाइस को इसी नाम से देखते हैं। नया नाम अगली बार ऑनलाइन होने पर लागू होगा।";

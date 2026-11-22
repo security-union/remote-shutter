@@ -341,6 +341,11 @@ public actor SessionCoordinator {
 
     var connectedPeers: [MCPeerID] { multipeerService?.connectedPeers ?? [] }
 
+    /// The name this device advertised when it went online: the director
+    /// sees the same one, so files named on both ends agree. Nil without a
+    /// live transport.
+    private var advertisedName: String? { multipeerService?.session?.myPeerID.displayName }
+
     /// How many cameras the collecting scanner has connected. The scanner
     /// reads this on "Start" to choose the single-camera vs director path.
     func multicamConnectedCount() -> Int { multicamCollecting ? connectedPeers.count : 0 }
@@ -365,7 +370,7 @@ public actor SessionCoordinator {
 
     private func unableToProcessError(_ msg: Message) async -> NSError {
         logWarning("session: \(type(of: msg)) REFUSED — wrong state \(currentStateName())")
-        let deviceName = await MainActor.run { UIDevice.current.name }
+        let deviceName = await MainActor.run { DeviceNamePreference.name }
         return NSError(
             domain: "Unable to process \(type(of: msg)) command, since \(deviceName) is not in the camera screen.", code: 0, userInfo: nil)
     }
@@ -1385,7 +1390,8 @@ public actor SessionCoordinator {
             // did, when it translated the fire time into this clock. The
             // shared `anchorMillis` is the alignment key; these are diagnostics.
             clockOffsetMillis: 0,
-            roundTripMillis: 0)
+            roundTripMillis: 0,
+            cameraName: advertisedName)
 
         let delayMillis = scheduledFireDelayMillis(lateness)
         Task { [weak self] in
@@ -1416,7 +1422,7 @@ public actor SessionCoordinator {
         let metadata = CaptureSyncMetadata(
             sessionID: scheduled.sessionId, captureID: scheduled.captureId,
             cameraIndex: scheduled.cameraIndex, anchorMillis: scheduled.anchorMillis,
-            clockOffsetMillis: 0, roundTripMillis: 0)
+            clockOffsetMillis: 0, roundTripMillis: 0, cameraName: advertisedName)
         // Fire INLINE — no re-enqueue through the inbox (the deferred-fire
         // indirection died with the sleep). Stamp the recording with its
         // sync metadata (QuickTime keys + RS_ filename), then roll.

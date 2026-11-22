@@ -55,6 +55,50 @@ enum ExposureControlsPreference {
     }
 }
 
+/// The name this device shows other devices: on the director's camera tiles,
+/// in the scanner, and in "Controlled by" on a camera. Set in Settings; empty
+/// means the system name. From iOS 16 the system name is the generic "iPhone"
+/// or "iPad" (the real one needs an entitlement this app doesn't have), so a
+/// rig of phones all look alike until people name them.
+///
+/// The name is part of the device's network identity, so a change applies the
+/// next time the device goes online or starts scanning, never mid-session.
+enum DeviceNamePreference {
+    static let key = "deviceName"
+    /// Fits a tile's name chip, and stays well inside Bonjour's TXT limits.
+    static let maxLength = 30
+
+    /// What the person typed, trimmed and capped. Empty when unset.
+    static var custom: String {
+        get { UserDefaults.standard.string(forKey: key) ?? "" }
+        set {
+            let cleaned = sanitized(newValue)
+            if cleaned.isEmpty {
+                UserDefaults.standard.removeObject(forKey: key)
+            } else {
+                UserDefaults.standard.set(cleaned, forKey: key)
+            }
+        }
+    }
+
+    /// The name to advertise right now.
+    @MainActor static var name: String {
+        effectiveName(custom: custom, systemName: UIDevice.current.name)
+    }
+
+    /// The custom name when there is one, otherwise the system's.
+    static func effectiveName(custom: String, systemName: String) -> String {
+        let cleaned = sanitized(custom)
+        return cleaned.isEmpty ? systemName : cleaned
+    }
+
+    /// Trims surrounding whitespace and caps the length.
+    static func sanitized(_ raw: String) -> String {
+        String(raw.trimmingCharacters(in: .whitespacesAndNewlines).prefix(maxLength))
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+}
+
 /// "Send Media to Remote" (Settings): whether the camera pushes each capture
 /// back to the remote that fired it. ONE reader for every remote surface —
 /// the classic 1:1 monitor and the multicam director both put this on the

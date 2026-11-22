@@ -296,3 +296,7 @@
 "TapGoOnlineStatus" = "TRYK PÅ “GÅ ONLINE” FOR AT KOMME I GANG";
 "TapStartScanningStatus" = "TRYK PÅ “START SCANNING” FOR AT KOMME I GANG";
 "Connect to remote" = "Opret forbindelse til fjernbetjening";
+
+/* Settings: device name row and footer */
+"Device Name" = "Enhedsnavn";
+"device_name_footer" = "Sådan vises denne enhed for andre enheder. Et nyt navn gælder, næste gang den går online.";

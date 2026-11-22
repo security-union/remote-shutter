@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "BAŞLAMAK İÇİN “ÇEVRİMİÇİ OL”A DOKUNUN";
 "TapStartScanningStatus" = "BAŞLAMAK İÇİN “TARAMAYI BAŞLAT”A DOKUNUN";
 "Connect to remote" = "Kumandaya bağlan";
+
+/* Settings: device name row and footer */
+"Device Name" = "Cihaz Adı";
+"device_name_footer" = "Diğer cihazların bu cihazı gördüğü ad. Yeni ad, cihaz bir sonraki çevrimiçi oluşunda geçerli olur.";

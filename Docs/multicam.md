@@ -147,7 +147,7 @@ sequenceDiagram
     Note over A,B: each fires at that instant on its OWN clock<br/>→ sub-frame skew at 30 fps
     A-->>MC: TakePicResp(stamped photo)
     B-->>MC: TakePicResp(stamped photo)
-    MC->>MC: save RS_<sess>_<shot>_cam<k> to Photos · lane .collected
+    MC->>MC: save cam<k>_<name>_RS_<sess>_<shot> to Photos · lane .collected
     MC-->>UI: lane snapshots (badges)
 ```
 

@@ -125,6 +125,7 @@
 		AB12CD34EF5601789ABC0DE6 /* FrameStreamingCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */; };
 		AB12CD34EF5601789ABC0DE8 /* CameraScreenView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */; };
 		AB12CD34EF5601789ABC0F02 /* MulticamGridLayoutTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0F01 /* MulticamGridLayoutTests.swift */; };
+		AB12CD34EF5601789ABC0F12 /* DeviceNamePreferenceTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0F11 /* DeviceNamePreferenceTests.swift */; };
 		AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */; };
 		AB12CD34EF5601789ABC0DEC /* SnapshotTestSupport.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */; };
 		AB12CD34EF5601789ABC0DF0 /* CameraRig.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB12CD34EF5601789ABC0DEF /* CameraRig.swift */; };
@@ -404,6 +405,7 @@
 		AB12CD34EF5601789ABC0DE5 /* FrameStreamingCoordinator.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FrameStreamingCoordinator.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE7 /* CameraScreenView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenView.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0F01 /* MulticamGridLayoutTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = MulticamGridLayoutTests.swift; sourceTree = "<group>"; };
+		AB12CD34EF5601789ABC0F11 /* DeviceNamePreferenceTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DeviceNamePreferenceTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraScreenSnapshotTests.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DEB /* SnapshotTestSupport.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = SnapshotTestSupport.swift; sourceTree = "<group>"; };
 		AB12CD34EF5601789ABC0DEF /* CameraRig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CameraRig.swift; sourceTree = "<group>"; };
@@ -658,6 +660,7 @@
 				CADE5E1EC000000000000005 /* CaptureIntegrationTests.swift */,
 				AB12CD34EF5601789ABC0DE3 /* RecordingPipelineTests.swift */,
 				AB12CD34EF5601789ABC0F01 /* MulticamGridLayoutTests.swift */,
+				AB12CD34EF5601789ABC0F11 /* DeviceNamePreferenceTests.swift */,
 				AB12CD34EF5601789ABC0DE9 /* CameraScreenSnapshotTests.swift */,
 				C4F2A81D9E3B47CA8D5E1A01 /* DeviceScannerSnapshotTests.swift */,
 				AB12CD34EF5601789ABC0DFB /* SessionTestSupport.swift */,
@@ -1355,6 +1358,7 @@
 				CADE5E1EC000000000000006 /* CaptureIntegrationTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DE4 /* RecordingPipelineTests.swift in Sources */,
 				AB12CD34EF5601789ABC0F02 /* MulticamGridLayoutTests.swift in Sources */,
+				AB12CD34EF5601789ABC0F12 /* DeviceNamePreferenceTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DEA /* CameraScreenSnapshotTests.swift in Sources */,
 				C4F2A81D9E3B47CA8D5E1A02 /* DeviceScannerSnapshotTests.swift in Sources */,
 				AB12CD34EF5601789ABC0DFC /* SessionTestSupport.swift in Sources */,
