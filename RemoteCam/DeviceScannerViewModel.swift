@@ -219,8 +219,20 @@ final class DeviceScannerViewModel: ObservableObject {
                 ? NSLocalizedString("WAITING FOR A REMOTE TO CONNECT...", comment: "")
                 : NSLocalizedString("SEARCHING FOR NEARBY CAMERAS...", comment: "")
         } else {
-            return NSLocalizedString("TAP THE BUTTON TO GET STARTED", comment: "")
+            // Name the button: the role glyph above it is not one.
+            return role == .camera
+                ? NSLocalizedString("TapGoOnlineStatus", comment: "Idle hint on the camera screen, names the Go Online button")
+                : NSLocalizedString("TapStartScanningStatus", comment: "Idle hint on the remote screen, names the Start Scanning button")
         }
+    }
+
+    /// The navigation title. A camera that isn't online yet isn't waiting for
+    /// anything: it has to go online first, so the title says what to do.
+    static func screenTitle(role: DeviceRole, isScanning: Bool) -> String {
+        guard role == .camera else { return NSLocalizedString("Scan for cameras", comment: "") }
+        return isScanning
+            ? NSLocalizedString("Waiting for remote", comment: "")
+            : NSLocalizedString("Connect to remote", comment: "Camera screen title before it goes online")
     }
 
     var hasPeers: Bool { !connectedPeers.isEmpty }

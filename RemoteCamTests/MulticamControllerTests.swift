@@ -31,6 +31,7 @@ final class MulticamControllerTests: XCTestCase {
         // The rig timer seeds from the shared preference; tests start from off.
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigModePreference.key)
         UserDefaults.standard.removeObject(forKey: ExposureControlsPreference.key)
         // "Send Media to Remote" is read per shot; tests start from the default (on).
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
@@ -39,6 +40,7 @@ final class MulticamControllerTests: XCTestCase {
     override func tearDown() {
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigModePreference.key)
         UserDefaults.standard.removeObject(forKey: ExposureControlsPreference.key)
         super.tearDown()
     }
@@ -107,6 +109,35 @@ final class MulticamControllerTests: XCTestCase {
         controller.setRigStandby(false)
         await controller.waitForIdle()
         XCTAssertFalse(RigStandbyPreference.isOn, "the tray tap is what the next session remembers")
+    }
+
+    /// PHOTO/VIDEO is remembered like standby: a director left in video opens
+    /// in video and switches every joining camera to it, and the toggle
+    /// updates what the next session opens in.
+    func testRigModeIsRememberedAcrossSessions() async {
+        RigModePreference.mode = .video
+        let (controller, transport, _) = await makeController(peers: [camA])
+        let caps = RemoteCmd.CameraCapabilitiesResp(
+            frontCamera: nil, backCamera: nil, currentCamera: .back, currentLens: .wideAngle, currentZoom: 1,
+            supportsMulticam: true, cameraMode: .Photo, error: nil)
+        controller.didReceiveMessage(caps, from: camA)
+        await controller.waitForIdle()
+
+        let modes = sent(transport, RemoteCmd.SetCameraMode.self)
+            .compactMap { ($0.msg as? RemoteCmd.SetCameraMode)?.mode }
+        XCTAssertEqual(modes, [.Video], "a joining camera is switched to the remembered mode")
+
+        controller.setCameraMode(.Photo)
+        await controller.waitForIdle()
+        XCTAssertEqual(RigModePreference.mode, .photo, "the toggle is what the next session remembers")
+    }
+
+    func testRigModePreferenceKeepsOnlyPhotoAndVideo() {
+        XCTAssertEqual(RigModePreference.mode, .photo, "unset opens in photo")
+        RigModePreference.mode = .video
+        XCTAssertEqual(RigModePreference.mode, .video)
+        RigModePreference.mode = .portrait
+        XCTAssertEqual(RigModePreference.mode, .photo, "portrait is not remembered")
     }
 
     private func makeController(peers: [MCPeerID])

@@ -242,7 +242,7 @@ public actor MulticamController {
     /// The director's PHOTO/VIDEO toggle, pushed to each camera as a
     /// pre-warm (the sensor reconfigure is paid at the toggle, not at the
     /// shutter). A setting, not an event: reconciled on join like aspect.
-    private var rigCameraMode: RecordingMode = .Photo
+    private var rigCameraMode: RecordingMode = RigModePreference.mode.recordingMode
     /// Portrait's aperture: a rig setting, one value for every camera, like
     /// the aspect. It opens at what the first Portrait camera reports (the
     /// camera owns the default), then follows the operator.
@@ -1339,6 +1339,11 @@ public actor MulticamController {
 
     private func handleSetCameraMode(_ mode: RecordingMode) {
         rigCameraMode = mode
+        switch mode {
+        case .Photo: RigModePreference.mode = .photo
+        case .Video: RigModePreference.mode = .video
+        default: break
+        }
         for peer in order {
             guard links[peer]?.capabilities?.cameraMode != nil else { continue }
             sendControl(.setcameramode, RemoteCmd.SetCameraMode(mode: mode), to: peer)

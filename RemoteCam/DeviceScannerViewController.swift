@@ -7,6 +7,7 @@
 //
 
 import UIKit
+import Combine
 import SwiftUI
 import MPCCompat
 import Stormo
@@ -97,6 +98,9 @@ public class DeviceScannerViewController: UIViewController {
     var notificationCenter: NotificationCenter = .default
     private var foregroundTask: Task<Void, Never>?
 
+    /// Keeps the navigation title in step with going online and offline.
+    private var titleSubscription: AnyCancellable?
+
     // MARK: - Network Browser
 
     var networkBrowser: NWBrowser?
@@ -106,6 +110,15 @@ public class DeviceScannerViewController: UIViewController {
     public override func viewDidLoad() {
         super.viewDidLoad()
         _ = _peerIDInitialized
+        titleSubscription = scannerViewModel.$isScanning
+            .receive(on: DispatchQueue.main)
+            // @Published emits the new value before the property changes,
+            // so the title is built from the emitted value.
+            .sink { [weak self] isScanning in
+                guard let self else { return }
+                self.navigationItem.title = DeviceScannerViewModel.screenTitle(
+                    role: self.role, isScanning: isScanning)
+            }
         remoteCamSession.setFrameSender(frameSender)
         self.remoteCamSession ! SetScannerLobby(lobby: self)
         scannerViewModel.role = role
@@ -143,9 +156,8 @@ public class DeviceScannerViewController: UIViewController {
         super.viewWillAppear(animated)
         navigationController?.isNavigationBarHidden = false
         navigationController?.navigationBar.prefersLargeTitles = true
-        navigationItem.title = role == .camera
-            ? NSLocalizedString("Waiting for remote", comment: "")
-            : NSLocalizedString("Scan for cameras", comment: "")
+        navigationItem.title = DeviceScannerViewModel.screenTitle(
+            role: role, isScanning: scannerViewModel.isScanning)
 
         navigationItem.rightBarButtonItem = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
