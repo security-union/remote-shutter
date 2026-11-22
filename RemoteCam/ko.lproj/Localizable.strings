@@ -290,7 +290,6 @@
 "You need at least 2 devices running Remote Shutter" = "Remote Shutter가 설치된 기기가 2대 이상 필요합니다";
 "Scan the QR code on another device to download Remote Shutter" = "다른 기기에서 QR 코드를 스캔하여 Remote Shutter를 다운로드하세요";
 "SCANNING ERROR - CHECK NETWORK SETTINGS" = "검색 오류 - 네트워크 설정 확인";
-"TAP THE BUTTON TO GET STARTED" = "버튼을 눌러 시작하세요";
 
 /* Settings */
 "About" = "정보";
@@ -334,12 +333,6 @@
 "WifiBannerBody" = "네트워크는 필요 없습니다. 기기끼리 직접 연결됩니다.";
 "WifiEscalationTip" = "계속 검색 중… 이 기기와 상대 기기 모두 Wi-Fi가 켜져 있는지 확인하세요. 제어 센터에서 끈 것도 꺼진 상태입니다. 설정 > Wi-Fi에서 켜세요.";
 
-/* Stormo transport upgrade banner (scanner screen) */
-"TransportBannerBadge" = "NEW";
-"TransportBannerTitle" = "대규모 업그레이드: Stormo 엔진";
-"TransportBannerBody" = "더 빠른 페어링, 더 안정적인 프리뷰.";
-"TransportBannerChipReconnect" = "자동 재연결";
-"TransportBannerAction" = "두 기기 모두 Remote Shutter를 최신 버전으로 업데이트하세요. 이전 버전끼리는 연결할 수 없습니다.";
 
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "기기가 같은 Wi-Fi 네트워크에 없으면 최대 20초가 걸릴 수 있습니다.";
@@ -419,3 +412,8 @@
 "PORTRAIT" = "인물 사진";
 "VIDEO" = "비디오";
 "Portrait blur aperture" = "인물 사진 흐림 조리개";
+
+/* Scanner idle hints name the button; camera title before going online */
+"TapGoOnlineStatus" = "‘온라인 전환’을 눌러 시작하세요";
+"TapStartScanningStatus" = "‘검색 시작’을 눌러 시작하세요";
+"Connect to remote" = "리모트에 연결";

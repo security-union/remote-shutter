@@ -173,13 +173,35 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     // MARK: - Status Message
 
-    func testStatusMessageIdle() {
+    /// Idle, the hint names the button to tap, so nobody taps the glyph.
+    func testStatusMessageIdleNamesTheRemoteButton() {
         let vm = DeviceScannerViewModel()
+        vm.role = .monitor
 
         XCTAssertEqual(
             vm.statusMessage,
-            NSLocalizedString("TAP THE BUTTON TO GET STARTED", comment: "")
+            NSLocalizedString("TapStartScanningStatus", comment: "")
         )
+    }
+
+    func testStatusMessageIdleNamesTheCameraButton() {
+        let vm = DeviceScannerViewModel()
+        vm.role = .camera
+
+        XCTAssertEqual(
+            vm.statusMessage,
+            NSLocalizedString("TapGoOnlineStatus", comment: "")
+        )
+    }
+
+    /// A camera isn't waiting for anyone until it is online.
+    func testCameraTitleSaysConnectUntilOnline() {
+        XCTAssertEqual(DeviceScannerViewModel.screenTitle(role: .camera, isScanning: false),
+                       NSLocalizedString("Connect to remote", comment: ""))
+        XCTAssertEqual(DeviceScannerViewModel.screenTitle(role: .camera, isScanning: true),
+                       NSLocalizedString("Waiting for remote", comment: ""))
+        XCTAssertEqual(DeviceScannerViewModel.screenTitle(role: .monitor, isScanning: false),
+                       NSLocalizedString("Scan for cameras", comment: ""))
     }
 
     func testStatusMessageScanningMonitorRole() {

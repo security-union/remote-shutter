@@ -290,7 +290,6 @@
 "You need at least 2 devices running Remote Shutter" = "Anda memerlukan sekurang-kurangnya 2 peranti yang menjalankan Remote Shutter";
 "Scan the QR code on another device to download Remote Shutter" = "Imbas kod QR pada peranti lain untuk memuat turun Remote Shutter";
 "SCANNING ERROR - CHECK NETWORK SETTINGS" = "RALAT IMBASAN - SEMAK TETAPAN RANGKAIAN";
-"TAP THE BUTTON TO GET STARTED" = "KETIK BUTANG UNTUK BERMULA";
 
 /* Settings */
 "About" = "Perihal";
@@ -334,12 +333,6 @@
 "WifiBannerBody" = "Tiada rangkaian diperlukan — peranti menyambung terus.";
 "WifiEscalationTip" = "Masih mencari… Pastikan Wi-Fi dihidupkan — pada peranti ini dan peranti satu lagi. Mematikannya dalam Pusat Kawalan masih dikira mati: gunakan Tetapan > Wi-Fi.";
 
-/* Stormo transport upgrade banner (scanner screen) */
-"TransportBannerBadge" = "BAHARU";
-"TransportBannerTitle" = "PENINGKATAN BESAR: ENJIN STORMO";
-"TransportBannerBody" = "Pemasangan lebih pantas dan pratonton lebih stabil.";
-"TransportBannerChipReconnect" = "Auto-sambung";
-"TransportBannerAction" = "Kemas kini Remote Shutter pada kedua-dua peranti. Versi lama tidak boleh berpasangan.";
 
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Ini boleh mengambil masa sehingga 20 saat jika peranti tidak berada pada rangkaian Wi-Fi yang sama.";
@@ -419,3 +412,8 @@
 "PORTRAIT" = "POTRET";
 "VIDEO" = "VIDEO";
 "Portrait blur aperture" = "Bukaan kabur potret";
+
+/* Scanner idle hints name the button; camera title before going online */
+"TapGoOnlineStatus" = "KETIK “DALAM TALIAN” UNTUK BERMULA";
+"TapStartScanningStatus" = "KETIK “MULA MENGIMBAS” UNTUK BERMULA";
+"Connect to remote" = "Sambung ke kawalan jauh";

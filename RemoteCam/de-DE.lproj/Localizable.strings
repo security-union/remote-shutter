@@ -290,7 +290,6 @@
 "You need at least 2 devices running Remote Shutter" = "Sie benötigen mindestens 2 Geräte mit Remote Shutter";
 "Scan the QR code on another device to download Remote Shutter" = "Scannen Sie den QR-Code auf einem anderen Gerät, um Remote Shutter herunterzuladen";
 "SCANNING ERROR - CHECK NETWORK SETTINGS" = "SUCHFEHLER - NETZWERKEINSTELLUNGEN PRÜFEN";
-"TAP THE BUTTON TO GET STARTED" = "TIPPEN SIE AUF DEN BUTTON, UM ZU STARTEN";
 
 /* Settings */
 "About" = "Über";
@@ -334,12 +333,6 @@
 "WifiBannerBody" = "Kein Netzwerk nötig — die Geräte verbinden sich direkt.";
 "WifiEscalationTip" = "Suche läuft… Prüfe, ob WLAN eingeschaltet ist — auf diesem und dem anderen Gerät. Im Kontrollzentrum deaktiviert zählt als aus: nutze Einstellungen > WLAN.";
 
-/* Stormo transport upgrade banner (scanner screen) */
-"TransportBannerBadge" = "NEU";
-"TransportBannerTitle" = "GROSSES UPDATE: STORMO-ENGINE";
-"TransportBannerBody" = "Schnellere Kopplung und stabilere Vorschau.";
-"TransportBannerChipReconnect" = "Auto-Reconnect";
-"TransportBannerAction" = "Aktualisiere Remote Shutter auf beiden Geräten, um es zu nutzen. Ältere Versionen können sich nicht koppeln.";
 
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Dies kann bis zu 20 Sekunden dauern, wenn die Geräte nicht im selben WLAN sind.";
@@ -419,3 +412,8 @@
 "PORTRAIT" = "PORTRÄT";
 "VIDEO" = "VIDEO";
 "Portrait blur aperture" = "Blende der Porträt-Unschärfe";
+
+/* Scanner idle hints name the button; camera title before going online */
+"TapGoOnlineStatus" = "TIPPE AUF „ONLINE GEHEN“, UM ZU STARTEN";
+"TapStartScanningStatus" = "TIPPE AUF „SUCHE STARTEN“, UM ZU STARTEN";
+"Connect to remote" = "Mit Fernbedienung verbinden";

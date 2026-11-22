@@ -82,7 +82,7 @@ final class MulticamViewModel: ObservableObject {
     /// When the rig actually started rolling — drives the classic
     /// `RecordingTimer` in the top bar. Nil unless recording.
     /// Photo, portrait or video shutter mode.
-    @Published var mode: MonitorMode = .photo
+    @Published var mode: MonitorMode = RigModePreference.mode
     /// The selector's segments, left to right. Portrait sits next to Photo,
     /// as in Apple's Camera, and only when the whole rig can take it.
     static func modes(portraitAvailable: Bool) -> [MonitorMode] {

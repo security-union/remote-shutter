@@ -170,7 +170,6 @@
 "You need at least 2 devices running Remote Shutter" = "Du skal bruge mindst 2 enheder med Remote Shutter";
 "Scan the QR code on another device to download Remote Shutter" = "Scan QR-koden på en anden enhed for at downloade Remote Shutter";
 "SCANNING ERROR - CHECK NETWORK SETTINGS" = "SCANNINGSFEJL - TJEK NETVÆRKSINDSTILLINGER";
-"TAP THE BUTTON TO GET STARTED" = "TRYK PÅ KNAPPEN FOR AT KOMME I GANG";
 
 /* Settings */
 "About" = "Om";
@@ -213,12 +212,6 @@
 "WifiBannerBody" = "Intet netværk nødvendigt — enhederne forbinder direkte.";
 "WifiEscalationTip" = "Søger stadig… Tjek at Wi-Fi er slået til — på denne enhed og den anden. Slukket i Kontrolcenter tæller stadig som slukket: brug Indstillinger > Wi-Fi.";
 
-/* Stormo transport upgrade banner (scanner screen) */
-"TransportBannerBadge" = "NYT";
-"TransportBannerTitle" = "STOR OPGRADERING: STORMO-MOTOR";
-"TransportBannerBody" = "Hurtigere parring og mere stabil visning.";
-"TransportBannerChipReconnect" = "Auto-genforbind";
-"TransportBannerAction" = "Opdater Remote Shutter på begge enheder for at få det. Ældre versioner kan ikke parres.";
 
 /* Peer connect attempt (retry + cancel) */
 "ConnectingHint" = "Dette kan tage op til 20 sekunder, hvis enhederne ikke er på samme Wi-Fi-netværk.";
@@ -298,3 +291,8 @@
 "PORTRAIT" = "PORTRÆT";
 "VIDEO" = "VIDEO";
 "Portrait blur aperture" = "Blænde for portrætsløring";
+
+/* Scanner idle hints name the button; camera title before going online */
+"TapGoOnlineStatus" = "TRYK PÅ “GÅ ONLINE” FOR AT KOMME I GANG";
+"TapStartScanningStatus" = "TRYK PÅ “START SCANNING” FOR AT KOMME I GANG";
+"Connect to remote" = "Opret forbindelse til fjernbetjening";

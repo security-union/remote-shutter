@@ -32,6 +32,17 @@ enum RigStandbyPreference {
     }
 }
 
+/// The director's PHOTO/VIDEO choice, remembered across sessions: a rig that
+/// was left in video opens in video, and every camera that joins is switched
+/// to it. Only photo and video are kept; anything else opens in photo.
+enum RigModePreference {
+    static let key = "rig.mode"
+    static var mode: MonitorMode {
+        get { UserDefaults.standard.string(forKey: key) == "video" ? .video : .photo }
+        set { UserDefaults.standard.set(newValue == .video ? "video" : "photo", forKey: key) }
+    }
+}
+
 /// Whether the director shows the exposure readouts and rulers. Off by
 /// default: most users came for zoom, and manual exposure changes what a
 /// photo is (single frame, no HDR merge), so the person asks for it once,

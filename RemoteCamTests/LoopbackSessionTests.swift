@@ -179,6 +179,7 @@ class LoopbackSessionTests: XCTestCase {
         try await super.setUp()
         UserDefaults.standard.removeObject(forKey: TimerPreference.key)
         UserDefaults.standard.removeObject(forKey: RigStandbyPreference.key)
+        UserDefaults.standard.removeObject(forKey: RigModePreference.key)
         UserDefaults.standard.removeObject(forKey: SendMediaPreference.key)
 
         director = MulticamController()
