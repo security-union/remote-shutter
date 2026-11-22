@@ -491,6 +491,15 @@ public actor SessionCoordinator {
         // Scanning wants any peer, so it holds none: a session or a dial in
         // flight cannot survive arriving here.
         link = .none
+        // The name is the transport's identity. After a rename the old
+        // transport would keep advertising the old name, so build a new one,
+        // the same way leaving and reopening the scanner does.
+        if let stale = multipeerService, let name = advertisedName,
+           name != lobby.peerID.displayName {
+            stale.stopSession()
+            multipeerService = nil
+            transportShared.value = nil
+        }
         if multipeerService == nil {
             // The one transport composition root — Debug builds interpose the
             // session console's wiretap here (identity in Release).

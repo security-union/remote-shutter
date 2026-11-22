@@ -14,6 +14,8 @@ struct DeviceScannerView: View {
     let onShareApp: () -> Void
     let onOpenSettings: () -> Void
     let onHelp: () -> Void
+    /// Camera only: opens the full Settings sheet, where the name is edited.
+    var onRename: () -> Void = {}
     /// Multicam only: the bottom CTA — connect the selection, or select-all-
     /// and-connect when nothing is checked.
     var onConnectSelected: (() -> Void)? = nil
@@ -223,6 +225,8 @@ struct DeviceScannerView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 .padding(.horizontal, 20)
+
+                deviceNameRow
 
                 // Status
                 statusArea
@@ -583,6 +587,27 @@ struct DeviceScannerView: View {
             .background(Color(.secondarySystemGroupedBackground))
             .clipShape(RoundedRectangle(cornerRadius: 12))
         }
+    }
+
+    /// What the remote will see in its list, and the way to change it.
+    private var deviceNameRow: some View {
+        VStack(spacing: 4) {
+            Text(NSLocalizedString("remote_sees_camera_as", comment: "Camera waiting screen, above this device's name"))
+                .font(.caption)
+                .foregroundColor(.secondary)
+            HStack(spacing: 10) {
+                Text(viewModel.deviceName)
+                    .font(.headline)
+                    .lineLimit(1)
+                Button(action: onRename) {
+                    Text(NSLocalizedString("rename_device", comment: "Camera waiting screen: opens Settings to rename this device"))
+                        .font(.subheadline)
+                        .fontWeight(.medium)
+                        .foregroundColor(AppTheme.accent)
+                }
+            }
+        }
+        .padding(.horizontal, 20)
     }
 
     private var settingsButton: some View {

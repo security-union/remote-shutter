@@ -300,3 +300,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Nome dispositivo";
 "device_name_footer" = "Il nome con cui gli altri dispositivi vedono questo. Un nuovo nome vale dalla prossima volta che va online.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "Il telecomando vede questa fotocamera come";
+"rename_device" = "Rinomina";

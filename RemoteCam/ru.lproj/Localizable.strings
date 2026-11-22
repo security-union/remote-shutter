@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Имя устройства";
 "device_name_footer" = "Так это устройство видят другие. Новое имя применится, когда оно снова выйдет в сеть.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "Пульт видит эту камеру как";
+"rename_device" = "Переименовать";

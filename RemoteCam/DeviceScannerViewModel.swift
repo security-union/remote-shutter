@@ -68,6 +68,8 @@ final class DeviceScannerViewModel: ObservableObject {
     @Published var connectedPeers: [MCPeerID] = []
     @Published var isScanning: Bool = false
     @Published var hasLocalNetworkAccess: Bool = true
+    /// The name other devices see this one as (its advertised identity).
+    @Published var deviceName: String = ""
     @Published var hasScanningError: Bool = false
     @Published var isConnecting: Bool = false
     @Published var hasConnectionError: Bool = false

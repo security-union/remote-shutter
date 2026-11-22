@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Tên thiết bị";
 "device_name_footer" = "Tên mà các thiết bị khác nhìn thấy. Tên mới sẽ áp dụng vào lần trực tuyến tiếp theo.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "Điều khiển thấy camera này là";
+"rename_device" = "Đổi tên";
