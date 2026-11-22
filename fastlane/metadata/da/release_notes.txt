@@ -1,2 +1,3 @@
 • Multicam styrer nu op til 8 kameraer på én gang, før 4.
 • Standby dæmper nu kameraets skærm helt ned, så telefoner på stativ ikke lyser scenen op.
+• Giv hver enhed et navn i Indstillinger. Filnavne starter nu med kameraets nummer og navn, så hver vinkel ligger samlet.

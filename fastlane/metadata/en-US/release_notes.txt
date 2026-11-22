@@ -1,2 +1,3 @@
 • Multicam now directs up to 8 cameras at once, up from 4.
 • Standby now dims the camera's screen all the way down, so phones on stands don't light up the stage.
+• Name each device in Settings. File names now start with the camera's number and name, so each angle sorts together.

@@ -1,2 +1,3 @@
 • Multicam steuert jetzt bis zu 8 Kameras gleichzeitig statt 4.
 • Standby dimmt den Bildschirm der Kamera jetzt ganz herunter, damit Handys auf Stativen die Bühne nicht erhellen.
+• Gib jedem Gerät in den Einstellungen einen Namen. Dateinamen beginnen jetzt mit Nummer und Name der Kamera, so liegt jede Perspektive beisammen.
