@@ -33,13 +33,22 @@ public class RolePickerController: UIViewController {
         navigationController?.navigationBar.prefersLargeTitles = true
         navigationItem.title = NSLocalizedString("Pick a role", comment: "")
 
-        navigationItem.rightBarButtonItem = UIBarButtonItem(
+        let help = UIBarButtonItem(
             image: UIImage(systemName: "questionmark.circle"),
             style: .plain,
             target: self,
             action: #selector(showHelpModal)
         )
-        navigationItem.rightBarButtonItem?.tintColor = UIColor(AppTheme.accent)
+        let settings = UIBarButtonItem(
+            image: UIImage(systemName: "gearshape"),
+            style: .plain,
+            target: self,
+            action: #selector(showSettings)
+        )
+        settings.accessibilityLabel = NSLocalizedString("Settings", comment: "")
+        // The first item sits rightmost.
+        navigationItem.rightBarButtonItems = [settings, help]
+        navigationItem.rightBarButtonItems?.forEach { $0.tintColor = UIColor(AppTheme.accent) }
     }
 
     // MARK: - SwiftUI Setup
@@ -64,6 +73,13 @@ public class RolePickerController: UIViewController {
 
     @objc private func showHelpModal() {
         presentHelpSheet()
+    }
+
+    /// Settings before picking a role: name the device, buy, restore.
+    @objc private func showSettings() {
+        let ctrl = UIHostingController(rootView: SettingsView())
+        ctrl.modalPresentationStyle = .pageSheet
+        present(ctrl, animated: true)
     }
 
     func becomeMonitor() {

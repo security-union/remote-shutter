@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Gerätename";
 "device_name_footer" = "So sehen andere Geräte dieses Gerät. Ein neuer Name gilt, sobald es das nächste Mal online geht.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "Die Fernbedienung sieht diese Kamera als";
+"rename_device" = "Umbenennen";

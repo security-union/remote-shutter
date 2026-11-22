@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "设备名称";
 "device_name_footer" = "其他设备看到的此设备名称。新名称将在下次上线时生效。";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "遥控器上显示的此相机名称";
+"rename_device" = "重命名";

@@ -300,3 +300,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Enhedsnavn";
 "device_name_footer" = "Sådan vises denne enhed for andre enheder. Et nyt navn gælder, næste gang den går online.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "Fjernbetjeningen ser dette kamera som";
+"rename_device" = "Omdøb";

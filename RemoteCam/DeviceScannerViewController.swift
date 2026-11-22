@@ -86,6 +86,18 @@ public class DeviceScannerViewController: UIViewController {
             UserDefaults.standard.set(data, forKey: userDefaultsPeerId)
             self.peerID = peerID
         }
+        scannerViewModel.deviceName = peerID.displayName
+    }
+
+    /// Settings closed: if the name changed, take the new one. Online, the
+    /// device goes back online under it right away (scanning rebuilds the
+    /// transport when the name differs); offline, the next Go Online uses it.
+    private func applyDeviceNameChange() {
+        guard DeviceNamePreference.name != peerID.displayName else { return }
+        initializePeerID()
+        if scannerViewModel.isScanning {
+            remoteCamSession ! UICmd.StartScanning(sender: nil)
+        }
     }
 
     // MARK: - Session
@@ -218,6 +230,9 @@ public class DeviceScannerViewController: UIViewController {
             },
             onHelp: { [weak self] in
                 self?.showHelpModal()
+            },
+            onRename: { [weak self] in
+                self?.presentSettings()
             },
             onConnectSelected: (role == .monitor)
                 ? { [weak self] in self?.handleConnectSelected() }
@@ -425,7 +440,16 @@ public class DeviceScannerViewController: UIViewController {
 
     /// The shared Settings/paywall sheet — the same one the monitor gates use.
     private func presentMulticamPaywall() {
-        let ctrl = UIHostingController(rootView: SettingsView())
+        presentSettings()
+    }
+
+    /// The full Settings sheet. Renaming happens there, so a changed name is
+    /// picked up when the sheet goes away.
+    private func presentSettings() {
+        let settings = SettingsView().onDisappear { [weak self] in
+            self?.applyDeviceNameChange()
+        }
+        let ctrl = UIHostingController(rootView: settings)
         ctrl.modalPresentationStyle = .pageSheet
         present(ctrl, animated: true)
     }

@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "डिवाइस का नाम";
 "device_name_footer" = "दूसरे डिवाइस इस डिवाइस को इसी नाम से देखते हैं। नया नाम अगली बार ऑनलाइन होने पर लागू होगा।";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "रिमोट पर इस कैमरे का नाम";
+"rename_device" = "नाम बदलें";

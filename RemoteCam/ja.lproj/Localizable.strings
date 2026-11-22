@@ -421,3 +421,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "デバイス名";
 "device_name_footer" = "ほかのデバイスに表示される名前です。新しい名前は次にオンラインになったときに反映されます。";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "リモートに表示されるこのカメラの名前";
+"rename_device" = "名前を変更";

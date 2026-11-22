@@ -315,3 +315,7 @@
 /* Settings: device name row and footer */
 "Device Name" = "Nom de l'appareil";
 "device_name_footer" = "Le nom que voient les autres appareils. Un nouveau nom s'applique à la prochaine mise en ligne.";
+
+/* Camera waiting screen: the name the remote sees, and a link to Settings to change it */
+"remote_sees_camera_as" = "La télécommande voit cette caméra sous le nom";
+"rename_device" = "Renommer";
