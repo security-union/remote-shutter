@@ -1,1 +1,2 @@
-Se corrigió un cierre inesperado en el iPhone 18 Pro al cambiar la cámara a exposición manual desde el control.
+• Multicámara ahora dirige hasta 8 cámaras a la vez, antes eran 4.
+• El modo de espera ahora baja al mínimo el brillo de la pantalla de la cámara, para que los teléfonos en tripié no iluminen el escenario.

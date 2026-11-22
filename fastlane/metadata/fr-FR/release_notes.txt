@@ -1,1 +1,2 @@
-Correction d'un plantage sur iPhone 18 Pro lors du passage de l'appareil en exposition manuelle depuis la télécommande.
+• Multicam dirige désormais jusqu'à 8 caméras à la fois, contre 4 auparavant.
+• La veille baisse désormais la luminosité de l'écran de la caméra au minimum : les téléphones sur pied n'éclairent plus la scène.

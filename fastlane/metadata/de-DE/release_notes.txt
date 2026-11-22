@@ -1,1 +1,2 @@
-Absturz auf dem iPhone 18 Pro behoben, der beim Umschalten der Kamera auf manuelle Belichtung über die Fernbedienung auftrat.
+• Multicam steuert jetzt bis zu 8 Kameras gleichzeitig statt 4.
+• Standby dimmt den Bildschirm der Kamera jetzt ganz herunter, damit Handys auf Stativen die Bühne nicht erhellen.
