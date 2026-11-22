@@ -18,6 +18,31 @@ final class MultiCamChromeTests: XCTestCase {
         XCTAssertEqual(MultiCamChrome.gridColumnCount(cameraCount: 9), 3) // grows by √n
     }
 
+    /// The largest paid rig: 8 cameras sit in a 3×3 with the last cell empty.
+    func testEightCamerasMakeAThreeByThreeGrid() {
+        XCTAssertEqual(StoreManager.maxPaidCameras, 8, "update this test with the cap")
+        XCTAssertEqual(MultiCamChrome.gridColumnCount(cameraCount: 8), 3)
+        XCTAssertEqual(MultiCamChrome.gridRowCount(cameraCount: 8), 3)
+    }
+
+    /// Every rig size up to the paid cap fits the viewport: the cells, gaps and
+    /// padding add up to exactly the window, on an iPad and on an iPhone.
+    func testGridCellsFillTheViewportExactly() {
+        let viewports = [CGSize(width: 1180, height: 820), CGSize(width: 852, height: 393)]
+        for viewport in viewports {
+            for count in 2...StoreManager.maxPaidCameras {
+                let cell = MultiCamChrome.gridCellSize(cameraCount: count, in: viewport)
+                let columns = CGFloat(MultiCamChrome.gridColumnCount(cameraCount: count))
+                let rows = CGFloat(MultiCamChrome.gridRowCount(cameraCount: count))
+                let pad = MultiCamChrome.gridPadding * 2, gap = MultiCamChrome.gridSpacing
+                XCTAssertEqual(cell.width * columns + gap * (columns - 1) + pad, viewport.width,
+                               accuracy: 0.001, "\(count) cameras in \(viewport)")
+                XCTAssertEqual(cell.height * rows + gap * (rows - 1) + pad, viewport.height,
+                               accuracy: 0.001, "\(count) cameras in \(viewport)")
+            }
+        }
+    }
+
     /// Rows complete the wall: rows × columns always covers the camera count,
     /// so sizing cells to viewport/rows keeps the whole grid inside the window
     /// (the off-screen-controls fix for wide Mac windows).
