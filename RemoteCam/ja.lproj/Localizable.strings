@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "「オンラインにする」をタップして開始";
 "TapStartScanningStatus" = "「スキャン開始」をタップして開始";
 "Connect to remote" = "リモートに接続";
+
+/* Settings: device name row and footer */
+"Device Name" = "デバイス名";
+"device_name_footer" = "ほかのデバイスに表示される名前です。新しい名前は次にオンラインになったときに反映されます。";

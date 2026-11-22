@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "TIPPE AUF „ONLINE GEHEN“, UM ZU STARTEN";
 "TapStartScanningStatus" = "TIPPE AUF „SUCHE STARTEN“, UM ZU STARTEN";
 "Connect to remote" = "Mit Fernbedienung verbinden";
+
+/* Settings: device name row and footer */
+"Device Name" = "Gerätename";
+"device_name_footer" = "So sehen andere Geräte dieses Gerät. Ein neuer Name gilt, sobald es das nächste Mal online geht.";

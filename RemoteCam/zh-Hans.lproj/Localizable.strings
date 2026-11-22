@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "点击“上线”开始";
 "TapStartScanningStatus" = "点击“开始搜索”开始";
 "Connect to remote" = "连接遥控器";
+
+/* Settings: device name row and footer */
+"Device Name" = "设备名称";
+"device_name_footer" = "其他设备看到的此设备名称。新名称将在下次上线时生效。";

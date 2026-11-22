@@ -296,3 +296,7 @@
 "TapGoOnlineStatus" = "TOCCA “VAI ONLINE” PER INIZIARE";
 "TapStartScanningStatus" = "TOCCA “AVVIA RICERCA” PER INIZIARE";
 "Connect to remote" = "Collegati al telecomando";
+
+/* Settings: device name row and footer */
+"Device Name" = "Nome dispositivo";
+"device_name_footer" = "Il nome con cui gli altri dispositivi vedono questo. Un nuovo nome vale dalla prossima volta che va online.";

@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "‘온라인 전환’을 눌러 시작하세요";
 "TapStartScanningStatus" = "‘검색 시작’을 눌러 시작하세요";
 "Connect to remote" = "리모트에 연결";
+
+/* Settings: device name row and footer */
+"Device Name" = "기기 이름";
+"device_name_footer" = "다른 기기에 표시되는 이 기기의 이름입니다. 새 이름은 다음에 온라인이 될 때 적용됩니다.";

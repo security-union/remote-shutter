@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "CHẠM “TRỰC TUYẾN” ĐỂ BẮT ĐẦU";
 "TapStartScanningStatus" = "CHẠM “BẮT ĐẦU QUÉT” ĐỂ BẮT ĐẦU";
 "Connect to remote" = "Kết nối với điều khiển";
+
+/* Settings: device name row and footer */
+"Device Name" = "Tên thiết bị";
+"device_name_footer" = "Tên mà các thiết bị khác nhìn thấy. Tên mới sẽ áp dụng vào lần trực tuyến tiếp theo.";

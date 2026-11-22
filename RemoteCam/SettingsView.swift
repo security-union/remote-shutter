@@ -106,8 +106,23 @@ struct SettingsView: View {
                 }
             }
             .tint(AppTheme.accent)
+
+            HStack {
+                Image(systemName: "character.cursor.ibeam")
+                    .foregroundColor(AppTheme.secondary)
+                    .frame(width: 28)
+                Text(NSLocalizedString("Device Name", comment: "settings row title"))
+                Spacer()
+                TextField(viewModel.systemDeviceName, text: $viewModel.deviceName)
+                    .multilineTextAlignment(.trailing)
+                    .textInputAutocapitalization(.words)
+                    .disableAutocorrection(true)
+                    .submitLabel(.done)
+            }
         } header: {
             Text(NSLocalizedString("Settings", comment: ""))
+        } footer: {
+            Text(NSLocalizedString("device_name_footer", comment: "settings footer under the device name field"))
         }
     }
 

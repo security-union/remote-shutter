@@ -311,3 +311,7 @@
 "TapGoOnlineStatus" = "TOCA “CONECTAR” PARA COMENZAR";
 "TapStartScanningStatus" = "TOCA “INICIAR BÚSQUEDA” PARA COMENZAR";
 "Connect to remote" = "Conéctate al remoto";
+
+/* Settings: device name row and footer */
+"Device Name" = "Nombre del dispositivo";
+"device_name_footer" = "Así ven este dispositivo los demás. Un nombre nuevo se aplica la próxima vez que se conecte.";

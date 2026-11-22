@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import StoreKit
 import Combine
 
@@ -40,6 +41,21 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
         didSet { SendMediaPreference.isEnabled = sendMediaToRemote }
     }
 
+    /// The device name field. Empty means the system name, which the field
+    /// shows as its placeholder.
+    @Published var deviceName: String {
+        didSet {
+            if deviceName.count > DeviceNamePreference.maxLength {
+                deviceName = String(deviceName.prefix(DeviceNamePreference.maxLength))
+                return
+            }
+            DeviceNamePreference.custom = deviceName
+        }
+    }
+
+    /// The name this device uses when nothing is typed.
+    @MainActor var systemDeviceName: String { UIDevice.current.name }
+
     // MARK: - App Info
 
     let appVersion: String = {
@@ -57,6 +73,7 @@ final class SettingsViewModel: ObservableObject, PurchaseManaging {
 
     init() {
         self.sendMediaToRemote = SendMediaPreference.isEnabled
+        self.deviceName = DeviceNamePreference.custom
 
         observePurchaseNotifications()
         loadProducts()

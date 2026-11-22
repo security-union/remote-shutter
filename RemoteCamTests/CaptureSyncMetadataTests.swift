@@ -23,8 +23,37 @@ final class CaptureSyncMetadataTests: XCTestCase {
         roundTripMillis: 11
     )
 
-    func testFilenamePrefixGroupsBySessionCaptureAndCamera() {
-        XCTAssertEqual(sample.filenamePrefix, "RS_6bb65b12_d0e1f2a3_cam3")
+    /// The camera leads, so a folder sorted by name groups each angle.
+    func testFilenamePrefixLeadsWithTheCamera() {
+        XCTAssertEqual(sample.filenamePrefix, "cam3_RS_6bb65b12_d0e1f2a3")
+    }
+
+    func testFilenamePrefixCarriesTheCameraName() {
+        var named = sample
+        named.cameraName = "Drum Kit (left)"
+        XCTAssertEqual(named.filenamePrefix, "cam3_Drum-Kit-left_RS_6bb65b12_d0e1f2a3")
+        XCTAssertEqual(named.videoFilename(), "cam3_Drum-Kit-left_RS_6bb65b12_d0e1f2a3.mov")
+    }
+
+    /// A name with nothing filename-safe in it falls back to the number alone.
+    func testFilenamePrefixSkipsAnUnusableName() {
+        var named = sample
+        named.cameraName = " /:* "
+        XCTAssertEqual(named.filenamePrefix, "cam3_RS_6bb65b12_d0e1f2a3")
+    }
+
+    func testFilenameComponentKeepsLettersAndDigitsOnly() {
+        XCTAssertEqual(CaptureSyncMetadata.filenameComponent("iPhone"), "iPhone")
+        XCTAssertEqual(CaptureSyncMetadata.filenameComponent("Dario's iPhone 6s"), "Dario-s-iPhone-6s")
+        XCTAssertEqual(CaptureSyncMetadata.filenameComponent("--Stage / Left--"), "Stage-Left")
+        XCTAssertEqual(CaptureSyncMetadata.filenameComponent("Cámara 2"), "Cámara-2")
+    }
+
+    /// Photos and EXIF carry the name inside the JSON blob too.
+    func testJSONRoundTripKeepsTheCameraName() {
+        var named = sample
+        named.cameraName = "Drums"
+        XCTAssertEqual(named.jsonString().flatMap(CaptureSyncMetadata.fromJSONString), named)
     }
 
     func testJSONRoundTrip() {

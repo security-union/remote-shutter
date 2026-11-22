@@ -34,6 +34,8 @@ struct CaptureSyncMetadata: Codable, Equatable {
     let clockOffsetMillis: Int64
     /// RTT of the offset estimate (ms); smaller = tighter sync.
     let roundTripMillis: Int64
+    /// The camera's advertised name, for filenames. Nil when unknown.
+    var cameraName: String? = nil
 
     /// QuickTime metadata keys, reverse-DNS in the `mdta` keyspace.
     enum QuickTimeKey {
@@ -43,11 +45,31 @@ struct CaptureSyncMetadata: Codable, Equatable {
         static let offset = "com.remoteshutter.clockOffsetMs"
     }
 
-    /// `RS_<sess>_<cap>_cam<k>` — groups one capture's files across cameras
-    /// when they land in a shared folder or an editor's media bin. Uses the
+    /// `cam<k>_<name>_RS_<sess>_<cap>`: the camera first, so sorting a folder
+    /// by name groups every file from one angle (one editor track); the
+    /// shared session and capture IDs then line the angles up. Uses the
     /// first UUID group so names stay readable.
     var filenamePrefix: String {
-        "RS_\(Self.shortID(sessionID))_\(Self.shortID(captureID))_cam\(cameraIndex)"
+        let ids = "RS_\(Self.shortID(sessionID))_\(Self.shortID(captureID))"
+        let name = cameraName.map(Self.filenameComponent) ?? ""
+        return name.isEmpty ? "cam\(cameraIndex)_\(ids)" : "cam\(cameraIndex)_\(name)_\(ids)"
+    }
+
+    /// A device name made safe for a filename on any desktop: letters and
+    /// digits kept, every other run of characters becomes one hyphen.
+    static func filenameComponent(_ name: String) -> String {
+        var result = ""
+        var pendingHyphen = false
+        for scalar in name.unicodeScalars {
+            if CharacterSet.alphanumerics.contains(scalar) {
+                if pendingHyphen && !result.isEmpty { result.append("-") }
+                pendingHyphen = false
+                result.unicodeScalars.append(scalar)
+            } else {
+                pendingHyphen = true
+            }
+        }
+        return String(result.prefix(DeviceNamePreference.maxLength))
     }
 
     /// Items for `AVAssetWriter.metadata` so the values travel inside the
@@ -108,12 +130,12 @@ struct CaptureSyncMetadata: Codable, Equatable {
     }
 
     /// A Photos `originalFilename` for this shot, e.g.
-    /// `RS_<sess>_<cap>_cam2.heic`. Groups a capture's files across cameras.
+    /// `cam2_Drums_RS_<sess>_<cap>.heic`.
     func photoFilename(isHEIC: Bool) -> String {
         "\(filenamePrefix).\(isHEIC ? "heic" : "jpg")"
     }
 
-    /// A Photos `originalFilename` for this clip, e.g. `RS_<sess>_<cap>_cam2.mov`.
+    /// A Photos `originalFilename` for this clip, e.g. `cam2_Drums_RS_<sess>_<cap>.mov`.
     func videoFilename() -> String { "\(filenamePrefix).mov" }
 
     /// EXIF wants `yyyy:MM:dd HH:mm:ss` in the local zone.

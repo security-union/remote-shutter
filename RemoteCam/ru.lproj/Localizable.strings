@@ -417,3 +417,7 @@
 "TapGoOnlineStatus" = "НАЖМИТЕ «ВЫЙТИ В СЕТЬ», ЧТОБЫ НАЧАТЬ";
 "TapStartScanningStatus" = "НАЖМИТЕ «НАЧАТЬ ПОИСК», ЧТОБЫ НАЧАТЬ";
 "Connect to remote" = "Подключение к пульту";
+
+/* Settings: device name row and footer */
+"Device Name" = "Имя устройства";
+"device_name_footer" = "Так это устройство видят другие. Новое имя применится, когда оно снова выйдет в сеть.";

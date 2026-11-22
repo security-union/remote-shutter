@@ -71,7 +71,7 @@ public class DeviceScannerViewController: UIViewController {
     }()
 
     private func initializePeerID() {
-        let currentDeviceName = UIDevice.current.name
+        let currentDeviceName = DeviceNamePreference.name
 
         // The Stormo-backed MCPeerID is Codable, not NSCoding like the real
         // MCPeerID was; the cache moved from NSKeyedArchiver to JSON. Stale
