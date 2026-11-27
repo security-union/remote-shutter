@@ -28,6 +28,35 @@ final class DeviceScannerViewModelTests: XCTestCase {
 
     // MARK: - Peer Management
 
+    /// A device renamed while the search was down comes back as a new peer.
+    /// The old row must not sit beside it.
+    func testRowsNotFoundAgainAfterADiscoveryRestartAreDropped() {
+        let vm = DeviceScannerViewModel()
+        let oldName = MCPeerID(displayName: "6S-2")
+        let stillThere = MCPeerID(displayName: "6S-3")
+        vm.addPeer(oldName)
+        vm.addPeer(stillThere)
+
+        vm.discoveryRestarted()
+        vm.addPeer(stillThere)
+        vm.addPeer(MCPeerID(displayName: "Guitar"))
+        vm.dropUnconfirmedPeers()
+
+        XCTAssertEqual(vm.connectedPeers.map(\.displayName), ["6S-3", "Guitar"])
+    }
+
+    func testADiscoveryRestartKeepsARowWithALiveLink() {
+        let vm = DeviceScannerViewModel()
+        let linked = MCPeerID(displayName: "Drums")
+        vm.addPeer(linked)
+        vm.multicamLiveLinks = [linked]
+
+        vm.discoveryRestarted()
+        vm.dropUnconfirmedPeers()
+
+        XCTAssertEqual(vm.connectedPeers, [linked])
+    }
+
     func testAddPeer() {
         let vm = DeviceScannerViewModel()
         let peer = MCPeerID(displayName: "TestDevice")

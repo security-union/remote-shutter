@@ -484,6 +484,9 @@ public actor SessionCoordinator {
             multipeerService?.startAdvertisingOnly(discoveryInfo: ["role": "camera"])
         case .monitor:
             multipeerService?.startBrowsingOnly()
+            OperationQueue.main.addOperation {
+                lobby.scannerViewModel.discoveryRestarted()
+            }
         }
     }
 
