@@ -246,7 +246,29 @@ final class DeviceScannerViewModel: ObservableObject {
         // name-upgrade replaces the hash-prefix placeholder instead of being
         // dropped (the shared rule the add-camera sheet also relies on).
         DiscoveredPeers.upsert(&connectedPeers, peer)
+        unconfirmedPeers.remove(peer)
         speedRunScanning = true
+    }
+
+    /// Rows listed before the last discovery restart that the new search has
+    /// not found again.
+    private var unconfirmedPeers: Set<MCPeerID> = []
+
+    /// A restarted search reports who is there now, never who left while the
+    /// old one was down. So rows it has not found again after `grace` are
+    /// dropped; a slow one is simply listed again when it is found.
+    func discoveryRestarted(grace: TimeInterval = 5) {
+        unconfirmedPeers = Set(connectedPeers)
+        DispatchQueue.main.asyncAfter(deadline: .now() + grace) { [weak self] in
+            self?.dropUnconfirmedPeers()
+        }
+    }
+
+    /// Rows with a link or an invite in flight stay: that camera is there.
+    func dropUnconfirmedPeers() {
+        let gone = unconfirmedPeers.subtracting(multicamLiveLinks).subtracting(multicamConnectingPeers)
+        connectedPeers.removeAll { gone.contains($0) }
+        unconfirmedPeers.removeAll()
     }
 
     func removePeer(_ peer: MCPeerID) {
